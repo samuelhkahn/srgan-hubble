@@ -8,20 +8,26 @@ from dataset import SR_HST_HSC_Dataset
 def main():
 	device = 'cuda' if torch.cuda.is_available() else 'cpu'
 	generator = Generator(n_res_blocks=16, n_ps_blocks=2)
-	hst_path = "/Users/samuelkahn/Desktop/Astro - Deep Learning/Brants Group/hsc_hst_data/src/data/samples/hst/filtered"
+	hst_path = "../src/data/samples/hst/filtered"
 
-	hsc_path = "/Users/samuelkahn/Desktop/Astro - Deep Learning/Brants Group/hsc_hst_data/src/data/samples/hsc/filtered"
+	hsc_path = "../src/data/samples/hsc/filtered"
+	# Create an experiment with your api key
+	experiment = Experiment(
+	    api_key="CxpH1cRvKjBGzJqoWVWUGDANA",
+	    project_name="general",
+	    workspace="samkahn-astro",
+	)
 	dataloader = torch.utils.data.DataLoader(
 	    SR_HST_HSC_Dataset(hst_path = hst_path , hsc_path = hsc_path, hr_size=[600, 600], lr_size=[100, 100]), 
 	    batch_size=16, pin_memory=True, shuffle=True,
 	)
-	train_srresnet(generator, dataloader, device, lr=1e-4, total_steps=1, display_step=50)
+	train_srresnet(generator, dataloader, device, experiment, lr=1e-4, total_steps=1, display_step=50)
 	torch.save(generator, 'srresnet.pt')
 
 	generator = torch.load('srresnet.pt')
 	discriminator = Discriminator(n_blocks=1, base_channels=8)
 
-	train_srgan(generator, discriminator, dataloader, device, lr=1e-4, total_steps=1, display_step=1000)
+	train_srgan(generator, discriminator, dataloader, device, experiment, lr=1e-4, total_steps=1, display_step=1000)
 	torch.save(generator, 'srgenerator.pt')
 	torch.save(discriminator, 'srdiscriminator.pt')
 
