@@ -22,7 +22,7 @@ def show_tensor_images(image_tensor):
     plt.imshow(image_grid.permute(1, 2, 0).squeeze())
     plt.show()
 
-def train_srresnet(srresnet, dataloader, device, lr=1e-4, total_steps=1e6, display_step=500):
+def train_srresnet(srresnet, dataloader, device, experiment, lr=1e-4, total_steps=1e6, display_step=500):
     srresnet = srresnet.to(device).train()
     optimizer = torch.optim.Adam(srresnet.parameters(), lr=lr)
 
@@ -53,6 +53,9 @@ def train_srresnet(srresnet, dataloader, device, lr=1e-4, total_steps=1e6, displ
 
             mean_loss += loss.item() / display_step
 
+            # Log to Comet ML
+            experiment.log_metric("SRResNet MSE Loss",mean_loss)
+
             if cur_step % display_step == 0 and cur_step > 0:
                 print('Step {}: SRResNet loss: {:.5f}'.format(cur_step, mean_loss))
                 show_tensor_images(lr_real * 2 - 1)
@@ -64,7 +67,7 @@ def train_srresnet(srresnet, dataloader, device, lr=1e-4, total_steps=1e6, displ
             if cur_step == total_steps:
                 break
 
-def train_srgan(generator, discriminator, dataloader, device, lr=1e-4, total_steps=2e5, display_step=500):
+def train_srgan(generator, discriminator, dataloader, device,experiment, lr=1e-4, total_steps=2e5, display_step=500):
     generator = generator.to(device).train()
     discriminator = discriminator.to(device).train()
     loss_fn = Loss(device=device)
@@ -79,6 +82,7 @@ def train_srgan(generator, discriminator, dataloader, device, lr=1e-4, total_ste
 
     mean_g_loss = 0.0
     mean_d_loss = 0.0
+    mean_vgg_loss = 0.0
 
     while cur_step < total_steps:
         for hr_real, lr_real in tqdm(dataloader, position=0):
@@ -93,13 +97,14 @@ def train_srgan(generator, discriminator, dataloader, device, lr=1e-4, total_ste
             # and use NVIDIA apex for mixed/half precision training
             if has_autocast:
                 with torch.cuda.amp.autocast(enabled=(device=='cuda')):
-                    g_loss, d_loss, hr_fake = loss_fn(
+                    g_loss, d_loss,vgg_loss, hr_fake = loss_fn(
                         generator, discriminator, hr_real, lr_real,
                     )
             else:
-                g_loss, d_loss, hr_fake = loss_fn(
+                g_loss, d_loss,vgg_loss, hr_fake = loss_fn(
                     generator, discriminator, hr_real, lr_real,
                 )
+
 
             g_optimizer.zero_grad()
             g_loss.backward()
@@ -111,6 +116,13 @@ def train_srgan(generator, discriminator, dataloader, device, lr=1e-4, total_ste
 
             mean_g_loss += g_loss.item() / display_step
             mean_d_loss += d_loss.item() / display_step
+            mean_vgg_loss += vgg_loss.item() / display_step
+
+
+            experiment.log_metric("Generator Loss",mean_g_loss)
+            experiment.log_metric("Discriminator Loss",mean_d_loss)
+            experiment.log_metric("VGG Loss",vgg_loss)
+
 
             if cur_step == lr_step:
                 g_scheduler.step()
@@ -124,6 +136,8 @@ def train_srgan(generator, discriminator, dataloader, device, lr=1e-4, total_ste
                 show_tensor_images(hr_real)
                 mean_g_loss = 0.0
                 mean_d_loss = 0.0
+                vgg_loss = 0.0
+
 
             cur_step += 1
             if cur_step == total_steps:

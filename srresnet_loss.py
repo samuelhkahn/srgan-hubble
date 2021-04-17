@@ -41,9 +41,12 @@ class Loss(nn.Module):
         fake_preds_for_d = discriminator(hr_fake.detach())
         real_preds_for_d = discriminator(hr_real.detach())
 
+        vgg_loss = 0.006 * self.vgg_loss(hr_real, hr_fake)
+
+
         g_loss = (
             0.001 * self.adv_loss(fake_preds_for_g, False) + \
-            0.006 * self.vgg_loss(hr_real, hr_fake) + \
+             vgg_loss + \
             self.img_loss(hr_real, hr_fake)
         )
         d_loss = 0.5 * (
@@ -51,4 +54,4 @@ class Loss(nn.Module):
             self.adv_loss(fake_preds_for_d, False)
         )
 
-        return g_loss, d_loss, hr_fake
+        return g_loss, d_loss,vgg_loss, hr_fake
