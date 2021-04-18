@@ -26,7 +26,7 @@ def main():
 	)
 	dataloader = torch.utils.data.DataLoader(
 	    SR_HST_HSC_Dataset(hst_path = hst_path , hsc_path = hsc_path, hr_size=[600, 600], lr_size=[100, 100]), 
-	    batch_size=1, pin_memory=True, shuffle=True,
+	    batch_size=16, pin_memory=True, shuffle=True,
 	)
 
 	train_srresnet(generator, dataloader, device, experiment, lr=1e-4, total_steps=1e5, display_step=50)
