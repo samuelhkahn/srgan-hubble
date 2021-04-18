@@ -29,13 +29,13 @@ def main():
 	    batch_size=16, pin_memory=True, shuffle=True,
 	)
 
-	train_srresnet(generator, dataloader, device, experiment, lr=1e-4, total_steps=1, display_step=50)
+	train_srresnet(generator, dataloader, device, experiment, lr=1e-4, total_steps=1e5, display_step=50)
 	torch.save(generator, 'srresnet.pt')
 
 	generator = torch.load('srresnet.pt')
 	discriminator = Discriminator(n_blocks=1, base_channels=8)
 
-	train_srgan(generator, discriminator, dataloader, device, experiment, lr=1e-4, total_steps=1, display_step=1000)
+	train_srgan(generator, discriminator, dataloader, device, experiment, lr=1e-4, total_steps=2e5, display_step=1000)
 	torch.save(generator, 'srgenerator.pt')
 	torch.save(discriminator, 'srdiscriminator.pt')
 
