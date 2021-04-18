@@ -2,4 +2,4 @@
 *pt
 __pycache__/
 srgan-env/
-
+*.job
