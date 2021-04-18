@@ -3,6 +3,7 @@ from torchvision.utils import make_grid
 import matplotlib.pyplot as plt
 from srresnet_loss import Loss
 import torch
+
 # Parse torch version for autocast
 # ######################################################
 version = torch.__version__
@@ -26,8 +27,12 @@ def train_srresnet(srresnet, dataloader, device, experiment, lr=1e-4, total_step
     srresnet = srresnet.to(device).train()
     optimizer = torch.optim.Adam(srresnet.parameters(), lr=lr)
 
+    # every 5000th step decrease the learning rate
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5000, gamma=0.1) 
+
     cur_step = 0
     mean_loss = 0.0
+
     while cur_step < total_steps:
         for hr_real, lr_real in tqdm(dataloader, position=0):
             # Conv2d expects (n_samples, channels, height, width)
@@ -50,11 +55,14 @@ def train_srresnet(srresnet, dataloader, device, experiment, lr=1e-4, total_step
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+            scheduler.step()
 
             mean_loss += loss.item() / display_step
 
             # Log to Comet ML
             experiment.log_metric("SRResNet MSE Loss",mean_loss)
+            experiment.log_metric("Learning Rate",optimizer.param_groups[0]['lr'])
+
 
             if cur_step % display_step == 0 and cur_step > 0:
                 print('Step {}: SRResNet loss: {:.5f}'.format(cur_step, mean_loss))
@@ -62,6 +70,9 @@ def train_srresnet(srresnet, dataloader, device, experiment, lr=1e-4, total_step
                 show_tensor_images(hr_fake.to(hr_real.dtype))
                 show_tensor_images(hr_real)
                 mean_loss = 0.0
+
+            if cur_step%5000==0:
+                torch.save(srresnet, f'srresnet_checkpoint_{cur_step}.pt')
 
             cur_step += 1
             if cur_step == total_steps:
