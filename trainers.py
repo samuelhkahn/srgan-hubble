@@ -140,6 +140,11 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, lr=1e-4
                 d_scheduler.step()
                 print('Decayed learning rate by 10x.')
 
+            if cur_step%10000==0:
+                torch.save(generator, f'srgenerator_checkpoint_{cur_step}.pt')
+                torch.save(discriminator, f'srdiscriminator_checkpoint_{cur_step}.pt')
+
+
             if cur_step % display_step == 0 and cur_step > 0:
                 print('Step {}: Generator loss: {:.5f}, Discriminator loss: {:.5f}'.format(cur_step, mean_g_loss, mean_d_loss))
                 show_tensor_images(lr_real * 2 - 1)
