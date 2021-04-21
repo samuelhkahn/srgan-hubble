@@ -72,7 +72,7 @@ def train_srresnet(srresnet, dataloader, device, experiment, lr=1e-4, total_step
                 mean_loss = 0.0
 
             if cur_step%5000==0:
-                torch.save(srresnet, f'srresnet_checkpoint_{cur_step}.pt')
+                torch.save(srresnet, f'srresnet_checkpoint_{cur_step}_no_clip.pt')
 
             cur_step += 1
             if cur_step == total_steps:
@@ -141,8 +141,8 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, lr=1e-4
                 print('Decayed learning rate by 10x.')
 
             if cur_step%10000==0:
-                torch.save(generator, f'srgenerator_checkpoint_{cur_step}.pt')
-                torch.save(discriminator, f'srdiscriminator_checkpoint_{cur_step}.pt')
+                torch.save(generator, f'srgenerator_checkpoint_no_clip_{cur_step}.pt')
+                torch.save(discriminator, f'srdiscriminator_checkpoint_no_clip_{cur_step}.pt')
 
 
             if cur_step % display_step == 0 and cur_step > 0:
