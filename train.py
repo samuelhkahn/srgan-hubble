@@ -10,6 +10,7 @@ def main():
 	device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 	generator = Generator(n_res_blocks=16, n_ps_blocks=2)
+	print(generator)
 
 	hst_path = "../data/samples/hst/filtered"
 	hsc_path = "../data/samples/hsc/filtered"
