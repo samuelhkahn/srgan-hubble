@@ -83,5 +83,7 @@ class SR_HST_HSC_Dataset(Dataset):
         for hr, lr in batch:
             hrs.append(hr)
             lrs.append(lr)
+            print(hr.shape)
+            print(lr.shape)
 
         return torch.stack(hrs, dim=0), torch.stack(lrs, dim=0)

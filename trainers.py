@@ -60,23 +60,32 @@ def train_srresnet(srresnet, dataloader, device, experiment, lr=1e-4, total_step
             mean_loss += loss.item() / display_step
 
             # Log to Comet ML
-            experiment.log_metric("SRResNet MSE Loss",mean_loss)
-            experiment.log_metric("Learning Rate",optimizer.param_groups[0]['lr'])
+
 
 
             if cur_step % display_step == 0 and cur_step > 0:
                 print('Step {}: SRResNet loss: {:.5f}'.format(cur_step, mean_loss))
-                show_tensor_images(lr_real * 2 - 1)
-                show_tensor_images(hr_fake.to(hr_real.dtype))
-                show_tensor_images(hr_real)
-                mean_loss = 0.0
+                experiment.log_image(lr_real[0,:,:,:],"Low Resolution")
+                experiment.log_image(hr_fake[0,:,:,:],"Super Resolution")
+                experiment.log_image(hr_real[0,:,:,:],"High Resolution")
+            # show_tensor_images(lr_real * 2 - 1)
+            # show_tensor_images(hr_fake.to(hr_real.dtype))
+            # show_tensor_images(hr_real)
 
-            if cur_step%5000==0:
+
+            experiment.log_metric("SRResNet MSE Loss",mean_loss)
+            experiment.log_metric("Learning Rate",optimizer.param_groups[0]['lr'])
+
+
+            # mean_loss = 0.0
+
+            if cur_step%20000==0:
                 torch.save(srresnet, f'srresnet_checkpoint_{cur_step}_no_clip.pt')
 
             cur_step += 1
             if cur_step == total_steps:
                 break
+    return srresnet
 
 def train_srgan(generator, discriminator, dataloader, device,experiment, lr=1e-4, total_steps=2e5, display_step=500):
     generator = generator.to(device).train()
@@ -141,15 +150,16 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, lr=1e-4
                 print('Decayed learning rate by 10x.')
 
             if cur_step%10000==0:
-                torch.save(generator, f'srgenerator_checkpoint_no_clip_{cur_step}.pt')
-                torch.save(discriminator, f'srdiscriminator_checkpoint_no_clip_{cur_step}.pt')
+                torch.save(generator, f'srgenerator_checkpoint_no_vgg_{cur_step}.pt')
+                torch.save(discriminator, f'srdiscriminator_checkpoint_no_vgg_{cur_step}.pt')
 
 
             if cur_step % display_step == 0 and cur_step > 0:
                 print('Step {}: Generator loss: {:.5f}, Discriminator loss: {:.5f}'.format(cur_step, mean_g_loss, mean_d_loss))
-                show_tensor_images(lr_real * 2 - 1)
-                show_tensor_images(hr_fake.to(hr_real.dtype))
-                show_tensor_images(hr_real)
+                print('Step {}: SRResNet loss: {:.5f}'.format(cur_step, mean_loss))
+                experiment.log_image(lr_real[0,:,:,:],"Low Resolution")
+                experiment.log_image(hr_fake[0,:,:,:],"Super Resolution")
+                experiment.log_image(hr_real[0,:,:,:],"High Resolution")
                 mean_g_loss = 0.0
                 mean_d_loss = 0.0
                 vgg_loss = 0.0
@@ -158,3 +168,5 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, lr=1e-4
             cur_step += 1
             if cur_step == total_steps:
                 break
+
+    return generator,discriminator
