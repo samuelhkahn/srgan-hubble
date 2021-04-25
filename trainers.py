@@ -65,9 +65,9 @@ def train_srresnet(srresnet, dataloader, device, experiment, lr=1e-4, total_step
 
             if cur_step % display_step == 0 and cur_step > 0:
                 print('Step {}: SRResNet loss: {:.5f}'.format(cur_step, mean_loss))
-                experiment.log_image(lr_real[0,:,:,:],"Low Resolution")
-                experiment.log_image(hr_fake[0,:,:,:],"Super Resolution")
-                experiment.log_image(hr_real[0,:,:,:],"High Resolution")
+                experiment.log_image(lr_real[0,:,:,:]cpu(),"Low Resolution")
+                experiment.log_image(hr_fake[0,:,:,:]cpu(),"Super Resolution")
+                experiment.log_image(hr_real[0,:,:,:].cpu(),"High Resolution")
             # show_tensor_images(lr_real * 2 - 1)
             # show_tensor_images(hr_fake.to(hr_real.dtype))
             # show_tensor_images(hr_real)
