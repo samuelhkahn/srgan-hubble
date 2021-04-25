@@ -157,9 +157,9 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, lr=1e-4
             if cur_step % display_step == 0 and cur_step > 0:
                 print('Step {}: Generator loss: {:.5f}, Discriminator loss: {:.5f}'.format(cur_step, mean_g_loss, mean_d_loss))
                 print('Step {}: SRResNet loss: {:.5f}'.format(cur_step, mean_loss))
-                experiment.log_image(lr_real[0,:,:,:],"Low Resolution")
-                experiment.log_image(hr_fake[0,:,:,:],"Super Resolution")
-                experiment.log_image(hr_real[0,:,:,:],"High Resolution")
+                experiment.log_image(lr_real[0,:,:,:].cpu(),"Low Resolution")
+                experiment.log_image(hr_fake[0,:,:,:].cpu(),"Super Resolution")
+                experiment.log_image(hr_real[0,:,:,:].cpu(),"High Resolution")
                 mean_g_loss = 0.0
                 mean_d_loss = 0.0
                 vgg_loss = 0.0
