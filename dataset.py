@@ -16,7 +16,7 @@ class SR_HST_HSC_Dataset(Dataset):
         *args/**kwargs: all other arguments for subclassed torchvision dataset
     '''
 
-    def __init__(self, hst_path: str, hsc_path:str, hr_size: list, lr_size: list ) -> None:
+    def __init__(self, hst_path: str, hsc_path:str, hr_size: list, lr_size: list, transform_type: str ) -> None:
         super().__init__()
 
         if hr_size is not None and lr_size is not None:
@@ -32,9 +32,15 @@ class SR_HST_HSC_Dataset(Dataset):
 #             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
 #         ])
 
+        self.median_scale = 0.32154497558051215
+        self.mean_scale = 0.31601302214882165
+        self.hst_min = -2.318
+        self.hsc_min = -0.168
         
         self.hst_path = hst_path
-        self.hsc_path = hsc_path 
+        self.hsc_path = hsc_path
+        self.transform_type = transform_type
+
         self.filenames = os.listdir(hst_path)
 
 
@@ -55,6 +61,14 @@ class SR_HST_HSC_Dataset(Dataset):
         x = 2*(x-0.5)
         return x
 
+    def scale_tensor(self,tensor,scale):
+        return scale*tensor
+
+    def log_transformation(self,tensor,min_pix,eps):
+        transformed = tensor+np.abs(min_pix)+eps
+        print(transformed.max())
+        transformed = np.log10(transformed)
+        return transformed
 
     def __len__(self) -> int:
         return len(self.filenames)
@@ -68,8 +82,20 @@ class SR_HST_HSC_Dataset(Dataset):
         hst_array = self.load_fits(hst_image)
         hsc_array = self.load_fits(hsc_image)
 
-        hst_transformation = self.sigmoid_transformation(hst_array)
-        hsc_transformation = self.sigmoid_transformation(hsc_array)
+        # scale LR image with median scale factor
+        hsc_array = self.scale_tensor(hsc_array,self.median_scale)
+
+        if self.transform_type == "sigmoid":
+            hst_transformation = self.sigmoid_transformation(hst_array)
+            hsc_transformation = self.sigmoid_transformation(hsc_array)
+        elif self.transform_type == "log_scale":
+            hst_transformation = self.log_transformation(hst_array,self.hst_min,1e-6)
+            hsc_transformation = self.log_transformation(hsc_array,self.hst_min,1e-6)
+        else:
+            hst_transformation = hst_array
+            hsc_transformation = hsc_array
+
+
 
         hst_tensor = torch.from_numpy(hst_transformation)
         hsc_tensor = torch.from_numpy(hsc_transformation)

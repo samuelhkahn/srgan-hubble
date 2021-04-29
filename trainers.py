@@ -68,6 +68,7 @@ def train_srresnet(srresnet, dataloader, device, experiment, lr=1e-4, total_step
                 experiment.log_image(lr_real[0,:,:,:].cpu(),"Low Resolution")
                 experiment.log_image(hr_fake[0,:,:,:].cpu(),"Super Resolution")
                 experiment.log_image(hr_real[0,:,:,:].cpu(),"High Resolution")
+                mean_loss = 0.0
             # show_tensor_images(lr_real * 2 - 1)
             # show_tensor_images(hr_fake.to(hr_real.dtype))
             # show_tensor_images(hr_real)
@@ -77,7 +78,7 @@ def train_srresnet(srresnet, dataloader, device, experiment, lr=1e-4, total_step
             experiment.log_metric("Learning Rate",optimizer.param_groups[0]['lr'])
 
 
-            # mean_loss = 0.0
+
 
             if cur_step%20000==0:
                 torch.save(srresnet, f'srresnet_checkpoint_{cur_step}_no_clip.pt')
@@ -150,8 +151,8 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, lr=1e-4
                 print('Decayed learning rate by 10x.')
 
             if cur_step%10000==0:
-                torch.save(generator, f'srgenerator_checkpoint_no_vgg_{cur_step}.pt')
-                torch.save(discriminator, f'srdiscriminator_checkpoint_no_vgg_{cur_step}.pt')
+                torch.save(generator, f'srgenerator_checkpoint_log_scale_{cur_step}.pt')
+                torch.save(discriminator, f'srdiscriminator_checkpoint_log_scale_{cur_step}.pt')
 
 
             if cur_step % display_step == 0 and cur_step > 0:

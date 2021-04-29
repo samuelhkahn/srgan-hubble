@@ -20,8 +20,8 @@ def main():
 
 	generator = Generator(n_res_blocks=16, n_ps_blocks=2)
 
-	hst_path = "../data/samples/hst/filtered"
-	hsc_path = "../data/samples/hsc/filtered"
+	hst_path = "../data/samples/hst/filtered_restricted"
+	hsc_path = "../data/samples/hsc/filtered_restricted"
 
 	
 	api_key = os.environ['COMET_ML_ASTRO_API_KEY']
@@ -34,20 +34,20 @@ def main():
 	    workspace="samkahn-astro",
 	)
 	dataloader = torch.utils.data.DataLoader(
-	    SR_HST_HSC_Dataset(hst_path = hst_path , hsc_path = hsc_path, hr_size=[600, 600], lr_size=[100, 100]), 
+	    SR_HST_HSC_Dataset(hst_path = hst_path , hsc_path = hsc_path, hr_size=[600, 600], lr_size=[100, 100], transform_type = "log_scale"), 
 	    batch_size=6, pin_memory=True, shuffle=True, collate_fn = collate_fn
 	)
 
-	generator = train_srresnet(generator, dataloader, device, experiment, lr=1e-4, total_steps=5e4, display_step=50)
+	generator = train_srresnet(generator, dataloader, device, experiment, lr=1e-4, total_steps=1e5, display_step=50)
 
-	torch.save(generator, 'srresnet_no_vgg.pt')
+	torch.save(generator, 'srresnet_log_scale.pt')
 
-	generator = torch.load('srresnet_no_vgg.pt')
+	generator = torch.load('srresnet_log_scale.pt')
 	discriminator = Discriminator(n_blocks=1, base_channels=8)
 
 	generator,discriminator = train_srgan(generator, discriminator, dataloader, device, experiment, lr=1e-4, total_steps=1e5, display_step=1000)
-	torch.save(generator, 'srgenerator_no_vgg.pt')
-	torch.save(discriminator, 'srdiscriminator_no_vgg.pt')
+	torch.save(generator, 'srgenerator_log_scale.pt')
+	torch.save(discriminator, 'srdiscriminator_log_scale.pt')
 
 
 if __name__=="__main__":
