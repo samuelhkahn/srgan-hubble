@@ -9,15 +9,15 @@ class ResidualBlock(nn.Module):
         channels: the number of channels throughout the residual block, a scalar
     '''
 
-    def __init__(self, channels):
+    def __init__(self, channels,padding_mode="replicate"):
         super().__init__()
 
         self.layers = nn.Sequential(
-            nn.Conv2d(channels, channels, kernel_size=3, padding=1),
+            nn.Conv2d(channels, channels, kernel_size=3, padding=1,padding_mode=padding_mode),
             nn.BatchNorm2d(channels),
             nn.PReLU(),
 
-            nn.Conv2d(channels, channels, kernel_size=3, padding=1),
+            nn.Conv2d(channels, channels, kernel_size=3, padding=1,padding_mode=padding_mode),
             nn.BatchNorm2d(channels),
         )
 

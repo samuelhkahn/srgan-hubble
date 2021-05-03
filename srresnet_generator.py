@@ -13,11 +13,11 @@ class Generator(nn.Module):
         n_res_blocks: number of residual blocks, a scalar
     '''
 
-    def __init__(self,num_input_channels=1, base_channels=64, n_ps_blocks=2, n_res_blocks=16):
+    def __init__(self,num_input_channels=1, base_channels=64, n_ps_blocks=2, n_res_blocks=16,padding_mode = "replicate"):
         super().__init__()
         # Input layer - take a N channels image and projects it into base channels
         self.in_layer = nn.Sequential(
-            nn.Conv2d(num_input_channels, base_channels, kernel_size=3, padding=1),
+            nn.Conv2d(num_input_channels, base_channels, kernel_size=3, padding=1,padding_mode=padding_mode),
             nn.PReLU(),
         )
 
@@ -28,7 +28,7 @@ class Generator(nn.Module):
             res_blocks += [ResidualBlock(base_channels)]
 
         res_blocks += [
-            nn.Conv2d(base_channels, base_channels, kernel_size=3, padding=1),
+            nn.Conv2d(base_channels, base_channels, kernel_size=3, padding=1,padding_mode=padding_mode),
             nn.BatchNorm2d(base_channels),
         ]
         self.res_blocks = nn.Sequential(*res_blocks)
@@ -54,7 +54,7 @@ class Generator(nn.Module):
 
         # Output layer
         self.out_layer = nn.Sequential(
-            nn.Conv2d(base_channels, 1, kernel_size=3, padding=1),
+            nn.Conv2d(base_channels, 1, kernel_size=3, padding=1,padding_mode=padding_mode),
             # nn.Tanh(),
             nn.LeakyReLU(0.2, inplace=True),
 

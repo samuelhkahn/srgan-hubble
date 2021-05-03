@@ -53,7 +53,7 @@ class SR_HST_HSC_Dataset(Dataset):
         array = array.astype(np.float32) # Big->little endian
         return array
 
-    def sigmoid_array(self,x):                                        
+    def sigmoid_array(self,x:np.ndarray) -> np.ndarray:                                        
         return 1 / (1 + np.exp(-x))
 
     def sigmoid_transformation(self,x:np.ndarray) -> np.ndarray:
@@ -61,12 +61,11 @@ class SR_HST_HSC_Dataset(Dataset):
         x = 2*(x-0.5)
         return x
 
-    def scale_tensor(self,tensor,scale):
+    def scale_tensor(self,tensor:np.ndarray, scale:float) -> np.ndarray:
         return scale*tensor
 
-    def log_transformation(self,tensor,min_pix,eps):
+    def log_transformation(self,tensor:np.ndarray,min_pix:float,eps:float) -> np.ndarray:
         transformed = tensor+np.abs(min_pix)+eps
-        print(transformed.max())
         transformed = np.log10(transformed)
         return transformed
 
@@ -101,15 +100,3 @@ class SR_HST_HSC_Dataset(Dataset):
         hsc_tensor = torch.from_numpy(hsc_transformation)
         
         return hst_tensor,hsc_tensor
-
-    @staticmethod
-    def collate_fn(batch):
-        hrs, lrs = [], []
-
-        for hr, lr in batch:
-            hrs.append(hr)
-            lrs.append(lr)
-            print(hr.shape)
-            print(lr.shape)
-
-        return torch.stack(hrs, dim=0), torch.stack(lrs, dim=0)
