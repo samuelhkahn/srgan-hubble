@@ -7,9 +7,10 @@ class ResidualBlock(nn.Module):
     ResidualBlock Class
     Values
         channels: the number of channels throughout the residual block, a scalar
+        padding_mode: Type of padding to apply to convolution
     '''
 
-    def __init__(self, channels,padding_mode="replicate"):
+    def __init__(self, channels,padding_mode="zeros"):
         super().__init__()
 
         self.layers = nn.Sequential(

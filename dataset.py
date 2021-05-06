@@ -69,6 +69,12 @@ class SR_HST_HSC_Dataset(Dataset):
         transformed = np.log10(transformed)
         return transformed
 
+    def median_scale(self,tensor::np.ndarray) -> np.ndarray:
+        y = tensor - np.median(tensor)
+        y_std = np.std(y)
+        normalized = y/y_std
+        return normalized
+
     def __len__(self) -> int:
         return len(self.filenames)
     
@@ -87,9 +93,15 @@ class SR_HST_HSC_Dataset(Dataset):
         if self.transform_type == "sigmoid":
             hst_transformation = self.sigmoid_transformation(hst_array)
             hsc_transformation = self.sigmoid_transformation(hsc_array)
+
         elif self.transform_type == "log_scale":
             hst_transformation = self.log_transformation(hst_array,self.hst_min,1e-6)
             hsc_transformation = self.log_transformation(hsc_array,self.hst_min,1e-6)
+
+        elif self.transform_type == "median_scale":
+            hst_transformation = self.median_scale(hst_array)
+            hsc_transformation = self.median_scale(hsc_array)
+            
         else:
             hst_transformation = hst_array
             hsc_transformation = hsc_array
