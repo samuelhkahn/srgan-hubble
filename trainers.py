@@ -3,7 +3,7 @@ from torchvision.utils import make_grid
 import matplotlib.pyplot as plt
 from srresnet_loss import Loss
 import torch
-
+from torch.nn.utils import clip_grad_norm_
 # Parse torch version for autocast
 # ######################################################
 version = torch.__version__
@@ -51,9 +51,11 @@ def train_srresnet(srresnet, dataloader, device, experiment, lr=1e-4, total_step
 
                 hr_fake = srresnet(lr_real)
                 loss = Loss.img_loss(hr_real, hr_fake)
-            
+            #print(torch.max(hr_fake))
+            #print(torch.max(hr_real)) 
             optimizer.zero_grad()
             loss.backward()
+            clip_grad_norm_(srresnet.parameters(), 1.0)
             optimizer.step()
             # scheduler.step()
 
@@ -157,7 +159,7 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, lr=1e-4
 
             if cur_step % display_step == 0 and cur_step > 0:
                 print('Step {}: Generator loss: {:.5f}, Discriminator loss: {:.5f}'.format(cur_step, mean_g_loss, mean_d_loss))
-                print('Step {}: SRResNet loss: {:.5f}'.format(cur_step, mean_loss))
+#                print('Step {}: SRResNet loss: {:.5f}'.format(cur_step, mean_loss))
                 experiment.log_image(lr_real[0,:,:,:].cpu(),"Low Resolution")
                 experiment.log_image(hr_fake[0,:,:,:].cpu(),"Super Resolution")
                 experiment.log_image(hr_real[0,:,:,:].cpu(),"High Resolution")

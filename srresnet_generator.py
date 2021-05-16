@@ -17,7 +17,7 @@ class Generator(nn.Module):
         super().__init__()
         # Input layer - take a N channels image and projects it into base channels
         self.in_layer = nn.Sequential(
-            nn.Conv2d(num_input_channels, base_channels, kernel_size=9, padding=1,padding_mode=padding_mode),
+            nn.Conv2d(num_input_channels, base_channels, kernel_size=9, padding=4,padding_mode=padding_mode),
             nn.PReLU(),
         )
 
@@ -51,18 +51,25 @@ class Generator(nn.Module):
             ]
             
         self.ps_blocks = nn.Sequential(*ps_blocks)
-
+	
+	# Intermediate  layer
+        self.inter_layer = nn.Sequential(
+            nn.Conv2d(base_channels, base_channels, kernel_size=9, padding=4,padding_mode=padding_mode),
+            nn.PReLU(),
+            nn.Conv2d(base_channels, base_channels, kernel_size=9, padding=4,padding_mode=padding_mode),
+            nn.PReLU(),
+        )
         # Output layer
         self.out_layer = nn.Sequential(
-            nn.Conv2d(base_channels, 1, kernel_size=9, padding=1,padding_mode=padding_mode),
+            nn.Conv2d(base_channels, 1, kernel_size=9, padding=4,padding_mode=padding_mode),
             # nn.Tanh(),
-            nn.LeakyReLU(0.2, inplace=True),
-
+	nn.PReLU()
         )
 
     def forward(self, x):
         x_res = self.in_layer(x)
         x = x_res + self.res_blocks(x_res)
         x = self.ps_blocks(x)
+        #x = self.inter_layer(x)
         x = self.out_layer(x)
         return x

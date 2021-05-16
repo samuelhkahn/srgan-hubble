@@ -68,13 +68,16 @@ class SR_HST_HSC_Dataset(Dataset):
         transformed = tensor+np.abs(min_pix)+eps
         transformed = np.log10(transformed)
         return transformed
-
-    def median_scale(self,tensor::np.ndarray) -> np.ndarray:
+    def median_transformation(self,tensor:np.ndarray) -> np.ndarray:
         y = tensor - np.median(tensor)
         y_std = np.std(y)
         normalized = y/y_std
+        #max_val = np.max(normalized)
+        #min_val = np.min(normalized)
+        #denominator = max_val-min_val
+        #normalized = (normalized-min_val)/denominator
+        ##print(f"Normalized Max:{np.max(normalized)}")
         return normalized
-
     def __len__(self) -> int:
         return len(self.filenames)
     
@@ -88,7 +91,7 @@ class SR_HST_HSC_Dataset(Dataset):
         hsc_array = self.load_fits(hsc_image)
 
         # scale LR image with median scale factor
-        hsc_array = self.scale_tensor(hsc_array,self.median_scale)
+        #hsc_array = self.scale_tensor(hsc_array,self.median_scale)
 
         if self.transform_type == "sigmoid":
             hst_transformation = self.sigmoid_transformation(hst_array)
@@ -99,8 +102,8 @@ class SR_HST_HSC_Dataset(Dataset):
             hsc_transformation = self.log_transformation(hsc_array,self.hst_min,1e-6)
 
         elif self.transform_type == "median_scale":
-            hst_transformation = self.median_scale(hst_array)
-            hsc_transformation = self.median_scale(hsc_array)
+            hst_transformation = self.median_transformation(hst_array)
+            hsc_transformation = self.median_transformation(hsc_array)
             
         else:
             hst_transformation = hst_array
