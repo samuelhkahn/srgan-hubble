@@ -39,7 +39,9 @@ def main():
 	    project_name="Super Resolution GAN: HSC->HST",
 	    workspace="samkahn-astro",
 	)
-	experiment.add_tag("median_scaling - grad clipping - lr 1e-6 - PReLU final layer ")
+
+	comet_tag = config["COMET_TAG"]["comet_tag"]
+	experiment.add_tag(comet_tag)
 
 	# Create Dataloader
 	dataloader = torch.utils.data.DataLoader(
