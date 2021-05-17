@@ -6,6 +6,9 @@ from astropy.io import fits
 from torch.utils.data import Dataset, DataLoader
 import os
 import torch
+import random
+import torchvision.transforms.functional as TF
+
 
 class SR_HST_HSC_Dataset(Dataset):
     '''
@@ -92,7 +95,7 @@ class SR_HST_HSC_Dataset(Dataset):
 
         # scale LR image with median scale factor
         #hsc_array = self.scale_tensor(hsc_array,self.median_scale)
-
+        print(type(hsc_array))
         if self.transform_type == "sigmoid":
             hst_transformation = self.sigmoid_transformation(hst_array)
             hsc_transformation = self.sigmoid_transformation(hsc_array)
@@ -108,10 +111,27 @@ class SR_HST_HSC_Dataset(Dataset):
         else:
             hst_transformation = hst_array
             hsc_transformation = hsc_array
+        # print(type(hst_transformation))
+        # hst_transformation = torch.from_numpy(hst_transformation)
+        # hsc_transformation = torch.from_numpy(hsc_transformation)
+        hst_transformation = self.to_pil(hst_transformation)
+        hsc_transformation = self.to_pil(hsc_transformation)
 
+        ## Flip Augmentations
+        if random.random() > 0.5:
+            hst_transformation = TF.vflip(hst_transformation)
+            hsc_transformation  = TF.vflip(hsc_transformation)
 
+        if random.random() >0.5:
+            hst_transformation = TF.hflip(hst_transformation)
+            hsc_transformation  = TF.hflip(hsc_transformation)
 
-        hst_tensor = torch.from_numpy(hst_transformation)
-        hsc_tensor = torch.from_numpy(hsc_transformation)
-        
+        # Convert to Tensor
+        hst_tensor = self.to_tensor(hst_transformation)
+        hsc_tensor = self.to_tensor(hsc_transformation)
+
+        # Collapse First Dimension
+        hst_tensor = hst_tensor.squeeze(0)
+        hsc_tensor = hsc_tensor.squeeze(0)
+
         return hst_tensor,hsc_tensor
