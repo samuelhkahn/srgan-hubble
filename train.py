@@ -45,7 +45,8 @@ def main():
 
 	# Create Dataloader
 	dataloader = torch.utils.data.DataLoader(
-	    SR_HST_HSC_Dataset(hst_path = hst_path , hsc_path = hsc_path, hr_size=[600, 600], lr_size=[100, 100], transform_type = "median_scale"), 
+	    SR_HST_HSC_Dataset(hst_path = hst_path , hsc_path = hsc_path, hr_size=[600, 600], 
+	    	lr_size=[100, 100], transform_type = "sigmoid_rms",data_aug = False), 
 	    batch_size=1, pin_memory=True, shuffle=True, collate_fn = collate_fn
 	)
 
@@ -53,7 +54,7 @@ def main():
 	generator = Generator(n_res_blocks=16, n_ps_blocks=2)
 
 	# Pretrain 
-	generator = train_srresnet(generator, dataloader, device, experiment, lr=1e-6, total_steps=1, display_step=50)
+	generator = train_srresnet(generator, dataloader, device, experiment, lr=1e-6, total_steps=1, display_step=250)
 
 	torch.save(generator, 'srresnet_median_scale.pt')
 
