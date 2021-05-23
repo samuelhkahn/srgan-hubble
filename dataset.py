@@ -29,6 +29,15 @@ class SR_HST_HSC_Dataset(Dataset):
         self.hsc_std = 0.04180176637927356
         self.hst_std = 0.0010912614529011736
 
+        self.median_scale = 0.32154497558051215
+        self.mean_scale = 0.31601302214882165
+
+        self.hst_median = 2.696401406865334e-05
+        self.hsc_median = 1.4194287359714508e-05
+
+        self.hst_min = -2.318
+        self.hsc_min = -0.168
+        
         self.hst_path = hst_path
         self.hsc_path = hsc_path
         self.transform_type = transform_type
@@ -73,11 +82,12 @@ class SR_HST_HSC_Dataset(Dataset):
         y = tensor - np.median(tensor)
         y_std = np.std(y)
         normalized = y/y_std
-        #max_val = np.max(normalized)
-        #min_val = np.min(normalized)
-        #denominator = max_val-min_val
-        #normalized = (normalized-min_val)/denominator
-        ##print(f"Normalized Max:{np.max(normalized)}")
+        return normalized
+
+    def global_median_transformation(self,tensor:np.ndarray,median: float, std:float) -> np.ndarray:
+        y = tensor - np.median(tensor)
+        y_std = np.std(y)
+        normalized = y/y_std
         return normalized
     def __len__(self) -> int:
         return len(self.filenames)
@@ -106,15 +116,17 @@ class SR_HST_HSC_Dataset(Dataset):
             hsc_transformation = self.median_transformation(hsc_array)
             
         elif self.transform_type == "sigmoid_rms":
-            print(hst_array)
             hst_transformation = self.sigmoid_rms_transformation(hst_array,self.hst_std)
             hsc_transformation = self.sigmoid_rms_transformation(hsc_array,self.hsc_std)
-            print(hst_transformation)
+        elif self.transform_type == "global_median_scale":
+            hst_transformation = self.global_median_transformation(hst_array,self.hst_median,self.hst_std)
+            hsc_transformation = self.global_median_transformation(hsc_array,self.hsc_median,self.hsc_std)
         # print(type(hst_transformation))
         # hst_transformation = torch.from_numpy(hst_transformation)
         # hsc_transformation = torch.from_numpy(hsc_transformation)
         hst_transformation = self.to_pil(hst_transformation)
         hsc_transformation = self.to_pil(hsc_transformation)
+
         if self.data_aug == True:
         ## Flip Augmentations
             if random.random() > 0.5:

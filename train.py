@@ -46,7 +46,7 @@ def main():
 	# Create Dataloader
 	dataloader = torch.utils.data.DataLoader(
 	    SR_HST_HSC_Dataset(hst_path = hst_path , hsc_path = hsc_path, hr_size=[600, 600], 
-	    	lr_size=[100, 100], transform_type = "sigmoid_rms",data_aug = False), 
+	    	lr_size=[100, 100], transform_type = "global_median_scale",data_aug = False), 
 	    batch_size=1, pin_memory=True, shuffle=True, collate_fn = collate_fn
 	)
 
@@ -56,15 +56,17 @@ def main():
 	# Pretrain 
 	generator = train_srresnet(generator, dataloader, device, experiment, lr=1e-6, total_steps=1, display_step=250)
 
-	torch.save(generator, 'srresnet_median_scale.pt')
+	model_name = config["MODEL_NAME"]["model_name"]
 
-	generator = torch.load('srresnet_median_scale.pt')
+	torch.save(generator, f'srresnet_{model_name}.pt')
+
+	generator = torch.load(f'srresnet_{model_name}.pt')
 	discriminator = Discriminator(n_blocks=1, base_channels=8)
 
 	generator,discriminator = train_srgan(generator, discriminator, dataloader, device, experiment, lr=1e-6, total_steps=1, display_step=1000)
 	
-	torch.save(generator, 'srresnet_median_scale.pt')
-	torch.save(discriminator, 'srdiscriminator_median_scale.pt')
+	torch.save(generator, f'srresnet_{model_name}.pt')
+	torch.save(discriminator, f'srdiscriminator_{model_name}.pt')
 
 
 if __name__=="__main__":
