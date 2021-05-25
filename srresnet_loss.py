@@ -45,8 +45,8 @@ class Loss(nn.Module):
 
 
         g_loss = (
-            0.001 * self.adv_loss(fake_preds_for_g, False) + \
-           vgg_loss + \
+            0.1 * self.adv_loss(fake_preds_for_g, False) + \
+           # vgg_loss + \
             self.img_loss(hr_real, hr_fake)
         )
         d_loss = 0.5 * (

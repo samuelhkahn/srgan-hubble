@@ -34,6 +34,7 @@ def main():
 	
 	# Adding Comet Logging
 	api_key = os.environ['COMET_ML_ASTRO_API_KEY']
+
 	experiment = Experiment(
 	    api_key=api_key,
 	    project_name="Super Resolution GAN: HSC->HST",
@@ -43,6 +44,10 @@ def main():
 	comet_tag = config["COMET_TAG"]["comet_tag"]
 	experiment.add_tag(comet_tag)
 
+
+
+
+	batch_size = int(config["BATCH_SIZE"]["batch_size"])
 	# Create Dataloader
 	dataloader = torch.utils.data.DataLoader(
 	    SR_HST_HSC_Dataset(hst_path = hst_path , hsc_path = hsc_path, hr_size=[600, 600], 
@@ -51,10 +56,12 @@ def main():
 	)
 
 	# Define Generator
-	generator = Generator(n_res_blocks=16, n_ps_blocks=2)
+	generator = Generator(n_res_blocks=16, n_ps_blocks=2,pix_shuffle=False)
+
+	srresnet_steps = int(config["SRRESENET_STEPS"]["srresnet_steps"])
 
 	# Pretrain 
-	generator = train_srresnet(generator, dataloader, device, experiment, lr=1e-6, total_steps=1, display_step=250)
+	generator = train_srresnet(generator, dataloader, device, experiment, lr=1e-6, total_steps=srresnet_steps, display_step=250)
 
 	model_name = config["MODEL_NAME"]["model_name"]
 
@@ -63,7 +70,8 @@ def main():
 	generator = torch.load(f'srresnet_{model_name}.pt')
 	discriminator = Discriminator(n_blocks=1, base_channels=8)
 
-	generator,discriminator = train_srgan(generator, discriminator, dataloader, device, experiment, lr=1e-6, total_steps=1, display_step=1000)
+	gan_steps = int(config["GAN_STEPS"]["gan_steps"])
+	generator,discriminator = train_srgan(generator, discriminator, dataloader, device, experiment, lr=1e-6, total_steps=gan_steps, display_step=1000)
 	
 	torch.save(generator, f'srresnet_{model_name}.pt')
 	torch.save(discriminator, f'srdiscriminator_{model_name}.pt')
