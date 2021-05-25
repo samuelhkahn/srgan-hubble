@@ -17,12 +17,9 @@ def collate_fn(batch):
 		hr_inf = torch.isinf(hr).any()
 		lr_inf = torch.isinf(lr).any()
 		good_vals = [hr_nan,lr_nan,hr_inf,lr_inf]
-		print(hr.shape,lr.shape)
 		if hr.shape == (600,600) and lr.shape == (100,100) and True not in good_vals:
 			hrs.append(hr)
 			lrs.append(lr)
-
-		print(hrs,lrs)
 	return torch.stack(hrs, dim=0), torch.stack(lrs, dim=0)
 
 
