@@ -66,7 +66,7 @@ def main():
 	)
 
 	# Define Generator
-	generator = Generator(n_res_blocks=16, n_ps_blocks=2,pix_shuffle=False)
+	generator = Generator(n_res_blocks=16, n_ps_blocks=2,pix_shuffle=True)
 
 	# Pretrain 
 	generator = train_srresnet(generator, dataloader, device, experiment, lr=1e-5, total_steps=srresnet_steps, display_step=250)
