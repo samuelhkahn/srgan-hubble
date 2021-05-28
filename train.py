@@ -8,10 +8,10 @@ from dataset import SR_HST_HSC_Dataset
 import numpy as np
 import configparser 
 def collate_fn(batch):
-	hrs, lrs = [], []
+	hrs, lrs, hr_segs = [], [], []
 
 
-	for hr, lr in batch:
+	for hr, lr,hr_seg in batch:
 		hr_nan = torch.isnan(hr).any()
 		lr_nan = torch.isnan(lr).any()
 		hr_inf = torch.isinf(hr).any()
@@ -20,7 +20,11 @@ def collate_fn(batch):
 		if hr.shape == (600,600) and lr.shape == (100,100) and True not in good_vals:
 			hrs.append(hr)
 			lrs.append(lr)
-	return torch.stack(hrs, dim=0), torch.stack(lrs, dim=0)
+			hr_segs.append(hr_seg)
+	hrs = torch.stack(hrs, dim=0)
+	lrs = torch.stack(lrs, dim=0)
+	hr_segs = torch.stack(hr_segs, dim=0)
+	return hrs, lrs, hr_segs
 
 
 def main():

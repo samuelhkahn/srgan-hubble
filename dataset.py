@@ -8,7 +8,7 @@ import os
 import torch
 import random
 import torchvision.transforms.functional as TF
-
+import sep
 
 class SR_HST_HSC_Dataset(Dataset):
     '''
@@ -78,17 +78,27 @@ class SR_HST_HSC_Dataset(Dataset):
         transformed = np.log10(transformed)
         return transformed
 
+    # Local (image level) median tansformation
     def median_transformation(self,tensor:np.ndarray) -> np.ndarray:
         y = tensor - np.median(tensor)
         y_std = np.std(y)
         normalized = y/y_std
         return normalized
 
+    # Global Median Transformation
     def global_median_transformation(self,tensor:np.ndarray,median: float, std:float) -> np.ndarray:
-        y = tensor - np.median(tensor)
-        y_std = np.std(y)
-        normalized = y/y_std
+        y = tensor - median
+        normalized = y/std
         return normalized
+
+    # segmentation map
+    def get_segmentation_map(self,pixels:np.ndarray) -> np.ndarray:
+            # pixels = pixels.byteswap().newbyteorder()
+            bkg = sep.Background(pixels)
+            mask = sep.extract(pixels, 3, err=bkg.globalrms,segmentation_map=True)[1]
+            mask[mask>0]=1
+            return  mask
+
     def __len__(self) -> int:
         return len(self.filenames)
     
@@ -100,6 +110,8 @@ class SR_HST_HSC_Dataset(Dataset):
         
         hst_array = self.load_fits(hst_image)
         hsc_array = self.load_fits(hsc_image)
+
+        hst_seg_map = self.to_tensor(self.get_segmentation_map(hst_array))
 
         # scale LR image with median scale factor
         #hsc_array = self.scale_tensor(hsc_array,self.median_scale)
@@ -145,4 +157,6 @@ class SR_HST_HSC_Dataset(Dataset):
         hst_tensor = hst_tensor.squeeze(0)
         hsc_tensor = hsc_tensor.squeeze(0)
 
-        return hst_tensor,hsc_tensor
+
+
+        return hst_tensor,hsc_tensor,hst_seg_map,

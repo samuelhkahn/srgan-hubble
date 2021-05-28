@@ -23,6 +23,10 @@ class Loss(nn.Module):
     def img_loss(x_real, x_fake):
         return F.mse_loss(x_real, x_fake)
 
+    @staticmethod
+    def img_loss_with_mask(x_real, x_fake,seg_map_real):
+        return torch.sum(((x_real-x_fake)*seg_map_real)**2.0)/torch.sum(seg_map_real)
+
     def adv_loss(self, x, is_real):
         # If fake we want "convince" that it is real
         target = torch.zeros_like(x) if is_real else torch.ones_like(x)
@@ -34,7 +38,7 @@ class Loss(nn.Module):
         x_fake = torch.repeat_interleave(x_fake, 3, dim=1)
         return F.mse_loss(self.vgg(x_real), self.vgg(x_fake))
 
-    def forward(self, generator, discriminator, hr_real, lr_real):
+    def forward(self, generator, discriminator, hr_real, lr_real,seg_map_real):
         ''' Performs forward pass and returns total losses for G and D '''
         hr_fake = generator(lr_real)
         fake_preds_for_g = discriminator(hr_fake)
@@ -43,10 +47,11 @@ class Loss(nn.Module):
 
         vgg_loss = 0.006 * self.vgg_loss(hr_real, hr_fake)
 
-
+        img_loss_with_mask = self.img_loss_with_mask(hr_real, hr_fake,seg_map_real)
         g_loss = (
             0.1 * self.adv_loss(fake_preds_for_g, False) + \
            # vgg_loss + \
+             img_loss_with_mask + \
             self.img_loss(hr_real, hr_fake)
         )
         d_loss = 0.5 * (

@@ -34,12 +34,12 @@ def train_srresnet(srresnet, dataloader, device, experiment, lr=1e-4, total_step
     mean_loss = 0.0
 
     while cur_step < total_steps:
-        for hr_real, lr_real in tqdm(dataloader, position=0):
+        for hr_real, lr_real, hr_segs in tqdm(dataloader, position=0):
             # Conv2d expects (n_samples, channels, height, width)
             # So add the channel dimension
             hr_real = hr_real.unsqueeze(1).to(device)
             lr_real = lr_real.unsqueeze(1).to(device)
-            
+            hr_segs = hr_segs.unsqueeze(1).to(device)
             # Enable autocast to FP16 tensors (new feature since torch==1.6.0)
             # If you're running older versions of torch, comment this out
             # and use NVIDIA apex for mixed/half precision training
@@ -47,10 +47,15 @@ def train_srresnet(srresnet, dataloader, device, experiment, lr=1e-4, total_step
                 with torch.cuda.amp.autocast(enabled=(device=='cuda')):
                     hr_fake = srresnet(lr_real)
                     loss = Loss.img_loss(hr_real, hr_fake)
+                    loss_mask = Loss.img_loss_with_mask(hr_real, hr_fake,hr_segs)
             else:
 
                 hr_fake = srresnet(lr_real)
                 loss = Loss.img_loss(hr_real, hr_fake)
+                loss_mask = Loss.img_loss_with_mask(hr_real, hr_fake,hr_segs)
+
+            loss+=loss_mask
+
             #print(torch.max(hr_fake))
             #print(torch.max(hr_real)) 
             optimizer.zero_grad()
@@ -108,24 +113,25 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, lr=1e-4
     mean_vgg_loss = 0.0
 
     while cur_step < total_steps:
-        for hr_real, lr_real in tqdm(dataloader, position=0):
+        for hr_real, lr_real, hr_segs in tqdm(dataloader, position=0):
             hr_real = hr_real.to(device)
             lr_real = lr_real.to(device)
             
             hr_real = hr_real.unsqueeze(1).to(device)
             lr_real = lr_real.unsqueeze(1).to(device)
-            
+            hr_segs = hr_segs.unsqueeze(1).to(device)
+
             # Enable autocast to FP16 tensors (new feature since torch==1.6.0)
             # If you're running older versions of torch, comment this out
             # and use NVIDIA apex for mixed/half precision training
             if has_autocast:
                 with torch.cuda.amp.autocast(enabled=(device=='cuda')):
                     g_loss, d_loss,vgg_loss, hr_fake = loss_fn(
-                        generator, discriminator, hr_real, lr_real,
+                        generator, discriminator, hr_real, lr_real, hr_segs
                     )
             else:
                 g_loss, d_loss,vgg_loss, hr_fake = loss_fn(
-                    generator, discriminator, hr_real, lr_real,
+                    generator, discriminator, hr_real, lr_real, hr_segs
                 )
 
 
