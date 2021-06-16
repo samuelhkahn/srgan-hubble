@@ -58,7 +58,9 @@ def train_srresnet(srresnet, dataloader, device, experiment, lr=1e-4, total_step
                 ssim_loss = Loss.ssim_loss_with_mask(hr_real, hr_fake,hr_segs)
 
             loss=mse_loss+mse_loss_mask+ssim_loss
- 
+            print(mse_loss)
+            print(mse_loss_mask)
+            print(ssim_loss)
             optimizer.zero_grad()
             loss.backward()
             clip_grad_norm_(srresnet.parameters(), 1.0)
@@ -78,7 +80,7 @@ def train_srresnet(srresnet, dataloader, device, experiment, lr=1e-4, total_step
                 experiment.log_image(hr_real[0,:,:,:].cpu(),"High Resolution")
 
                 img_diff = (hr_fake[0,:,:,:] - hr_real[0,:,:,:]).cpu()
-                
+
                 experiment.log_image(img_diff,"Image Difference")
 
                 mean_loss = 0.0
