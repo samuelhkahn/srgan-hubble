@@ -31,9 +31,10 @@ class Loss(nn.Module):
 
     @staticmethod
     def ssim_loss_with_mask(x_real, x_fake,seg_map_real):
-        x_real = x_real*seg_map_real.squeeze(0)
-        x_fake = x_fake*seg_map_real.squeeze(0)
-        print(x_fake.shape)
+
+        seg_map_real = seg_map_real.squeeze(1)
+        x_real = x_real*seg_map_real
+        x_fake = x_fake*seg_map_real
         return pytorch_ssim.SSIM()(x_real,x_fake)
 
     def adv_loss(self, x, is_real):
