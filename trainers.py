@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from srresnet_loss import Loss
 import torch
 from torch.nn.utils import clip_grad_norm_
+
 # Parse torch version for autocast
 # ######################################################
 version = torch.__version__
@@ -46,15 +47,17 @@ def train_srresnet(srresnet, dataloader, device, experiment, lr=1e-4, total_step
             if has_autocast:
                 with torch.cuda.amp.autocast(enabled=(device=='cuda')):
                     hr_fake = srresnet(lr_real)
-                    loss = Loss.img_loss(hr_real, hr_fake)
-                    loss_mask = Loss.img_loss_with_mask(hr_real, hr_fake,hr_segs)
+                    mse_loss = 0.001*Loss.img_loss(hr_real, hr_fake)
+                    mse_loss_mask = 0.001*Loss.img_loss_with_mask(hr_real, hr_fake,hr_segs)
+                    ssim_loss = Loss.ssim_loss_with_mask(hr_real, hr_fake,hr_segs)
             else:
 
                 hr_fake = srresnet(lr_real)
-                loss = Loss.img_loss(hr_real, hr_fake)
-                loss_mask = Loss.img_loss_with_mask(hr_real, hr_fake,hr_segs)
+                mse_loss = 0.001*Loss.img_loss(hr_real, hr_fake)
+                mse_loss_mask = 0.001*Loss.img_loss_with_mask(hr_real, hr_fake,hr_segs)
+                ssim_loss = Loss.ssim_loss_with_mask(hr_real, hr_fake,hr_segs)
 
-            loss+=loss_mask
+            loss=mse_loss+mse_loss_mask+ssim_loss
 
             #print(torch.max(hr_fake))
             #print(torch.max(hr_real)) 
@@ -75,6 +78,9 @@ def train_srresnet(srresnet, dataloader, device, experiment, lr=1e-4, total_step
                 experiment.log_image(lr_real[0,:,:,:].cpu(),"Low Resolution")
                 experiment.log_image(hr_fake[0,:,:,:].cpu(),"Super Resolution")
                 experiment.log_image(hr_real[0,:,:,:].cpu(),"High Resolution")
+                img_diff = (hr_fake[0,:,:,:] - hr_real[0,:,:,:]).cpu()
+                experiment.log_image(img_diff,"Image Difference")
+
                 mean_loss = 0.0
             # show_tensor_images(lr_real * 2 - 1)
             # show_tensor_images(hr_fake.to(hr_real.dtype))

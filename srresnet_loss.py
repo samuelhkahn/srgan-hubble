@@ -2,6 +2,7 @@ from torchvision.models import vgg19
 import torch.nn as nn
 import torch.nn.functional as F
 import torch
+import pytorch_ssim
 
 class Loss(nn.Module):
     '''
@@ -26,6 +27,14 @@ class Loss(nn.Module):
     @staticmethod
     def img_loss_with_mask(x_real, x_fake,seg_map_real):
         return torch.sum(((x_real-x_fake)*seg_map_real)**2.0)/torch.sum(seg_map_real)
+
+
+    @staticmethod
+    def ssim_loss_with_mask(x_real, x_fake,seg_map_real):
+        x_real = x_real*seg_map_real.squeeze(0)
+        x_fake = x_fake*seg_map_real.squeeze(0)
+        print(x_fake.shape)
+        return pytorch_ssim.SSIM()(x_real,x_fake)
 
     def adv_loss(self, x, is_real):
         # If fake we want "convince" that it is real
