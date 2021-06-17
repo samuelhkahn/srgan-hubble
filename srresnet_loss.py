@@ -4,6 +4,7 @@ import torch.nn.functional as F
 import torch
 
 from neuralnet_pytorch.metrics import ssim
+
 class Loss(nn.Module):
     '''
     Loss Class
@@ -32,9 +33,9 @@ class Loss(nn.Module):
     @staticmethod
     def ssim_loss_with_mask(x_real, x_fake,seg_map_real):
 
-        seg_map_real = seg_map_real.squeeze(1)
-        x_real = x_real*seg_map_real
-        x_fake = x_fake*seg_map_real
+        # seg_map_real = seg_map_real.squeeze(1)
+        # x_real = x_real*seg_map_real
+        # x_fake = x_fake*seg_map_real
         return ssim(x_real,x_fake)
 
     def adv_loss(self, x, is_real):
