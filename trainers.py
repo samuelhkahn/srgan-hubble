@@ -44,27 +44,27 @@ def train_srresnet(srresnet, dataloader, device, experiment, lr=1e-4, total_step
             # Enable autocast to FP16 tensors (new feature since torch==1.6.0)
             # If you're running older versions of torch, comment this out
             # and use NVIDIA apex for mixed/half precision training
-            if has_autocast:
-                with torch.cuda.amp.autocast(enabled=(device=='cuda')):
-                    hr_fake = srresnet(lr_real)
-                    mse_loss = Loss.img_loss(hr_real, hr_fake)
-                    mse_loss_mask = Loss.img_loss_with_mask(hr_real, hr_fake,hr_segs)
-                    # ssim_loss = Loss.ssim_loss_with_mask(hr_real, hr_fake,hr_segs)
-                    emd_loss = Loss.emd(hr_real, hr_fake,hr_segs)
-                    print(emd_loss)
+            # if has_autocast:
+            #     with torch.cuda.amp.autocast(enabled=(device=='cuda')):
+            #         hr_fake = srresnet(lr_real)
+            #         mse_loss = Loss.img_loss(hr_real, hr_fake)
+            #         mse_loss_mask = Loss.img_loss_with_mask(hr_real, hr_fake,hr_segs)
+            #         # ssim_loss = Loss.ssim_loss_with_mask(hr_real, hr_fake,hr_segs)
+            #         emd_loss = Loss.emd(hr_real, hr_fake,hr_segs)
+            #         print(emd_loss)
 
-                    emd_loss = torch.mean(emd_loss)
+            #         emd_loss = torch.mean(emd_loss)
 
-            else:
+            # else:
 
-                hr_fake = srresnet(lr_real)
-                mse_loss = 0.001*Loss.img_loss(hr_real, hr_fake)
-                mse_loss_mask = 0.001*Loss.img_loss_with_mask(hr_real, hr_fake,hr_segs)
-                # ssim_loss = Loss.ssim_loss_with_mask(hr_real, hr_fake,hr_segs)
-                emd_loss = Loss.emd(hr_real, hr_fake,hr_segs)
-                print(emd_loss)
+            hr_fake = srresnet(lr_real)
+            mse_loss = 0.001*Loss.img_loss(hr_real, hr_fake)
+            mse_loss_mask = 0.001*Loss.img_loss_with_mask(hr_real, hr_fake,hr_segs)
+            # ssim_loss = Loss.ssim_loss_with_mask(hr_real, hr_fake,hr_segs)
+            emd_loss = Loss.emd(hr_real, hr_fake,hr_segs)
+            print(emd_loss)
 
-                emd_loss = torch.mean(emd_loss)
+            emd_loss = torch.mean(emd_loss)
 
             loss=mse_loss+mse_loss_mask+emd_loss
             print(mse_loss)

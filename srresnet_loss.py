@@ -42,12 +42,15 @@ class Loss(nn.Module):
     def emd(x_real, x_fake,seg_map_real):
 
         seg_map_real = seg_map_real.squeeze(1)
-        
+
         x_real = x_real*seg_map_real
         x_fake = x_fake*seg_map_real
 
         x_real = x_real.squeeze(1)
         x_fake = x_fake.squeeze(1)
+
+        x_real = torch.clip(x_real,0.0001)
+        x_real = torch.clip(x_real,0.0001)
 
         return emd_loss(x_real,x_fake,sinkhorn=True)
 
