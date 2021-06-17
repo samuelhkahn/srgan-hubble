@@ -47,22 +47,25 @@ def train_srresnet(srresnet, dataloader, device, experiment, lr=1e-4, total_step
             if has_autocast:
                 with torch.cuda.amp.autocast(enabled=(device=='cuda')):
                     hr_fake = srresnet(lr_real)
-                    mse_loss = 0.001*Loss.img_loss(hr_real, hr_fake)
-                    mse_loss_mask = 0.001*Loss.img_loss_with_mask(hr_real, hr_fake,hr_segs)
+                    mse_loss = Loss.img_loss(hr_real, hr_fake)
+                    mse_loss_mask = Loss.img_loss_with_mask(hr_real, hr_fake,hr_segs)
                     # ssim_loss = Loss.ssim_loss_with_mask(hr_real, hr_fake,hr_segs)
-                    emd_loss = Loss.emd(hr_real, hr_fake)
+                    emd_loss = Loss.emd(hr_real, hr_fake,hr_segs)
+                    emd_loss = torch.mean(emd_loss)
+
             else:
 
                 hr_fake = srresnet(lr_real)
                 mse_loss = 0.001*Loss.img_loss(hr_real, hr_fake)
                 mse_loss_mask = 0.001*Loss.img_loss_with_mask(hr_real, hr_fake,hr_segs)
                 # ssim_loss = Loss.ssim_loss_with_mask(hr_real, hr_fake,hr_segs)
-                emd_loss = Loss.emd(hr_real, hr_fake)
+                emd_loss = Loss.emd(hr_real, hr_fake,hr_segs)
+                emd_loss = torch.mean(emd_loss)
 
-            loss=mse_loss+mse_loss_mask+ssim_loss
+            loss=mse_loss+mse_loss_mask+emd_loss
             print(mse_loss)
             print(mse_loss_mask)
-            print(ssim_loss)
+            print(emd_loss)
             optimizer.zero_grad()
             loss.backward()
             clip_grad_norm_(srresnet.parameters(), 1.0)
