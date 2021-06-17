@@ -60,16 +60,16 @@ def train_srresnet(srresnet, dataloader, device, experiment, lr=1e-4, total_step
             hr_fake = srresnet(lr_real)
             mse_loss = Loss.img_loss(hr_real, hr_fake)
             mse_loss_mask = Loss.img_loss_with_mask(hr_real, hr_fake,hr_segs)
-            # ssim_loss = Loss.ssim_loss_with_mask(hr_real, hr_fake,hr_segs)
-            emd_loss = Loss.emd(hr_real, hr_fake,hr_segs)
-            print(emd_loss)
+            ssim_loss = Loss.ssim_loss_with_mask(hr_real, hr_fake,hr_segs)
+            # emd_loss = Loss.emd(hr_real, hr_fake,hr_segs)
+            # print(emd_loss)
 
-            emd_loss = torch.mean(emd_loss)
+            # emd_loss = torch.mean(emd_loss)
 
-            loss=mse_loss+mse_loss_mask+emd_loss
+            loss=0.001*mse_loss+0.001*mse_loss_mask+ssim_loss
             print(mse_loss)
             print(mse_loss_mask)
-            print(emd_loss)
+            print(ssim_loss)
             optimizer.zero_grad()
             loss.backward()
             clip_grad_norm_(srresnet.parameters(), 1.0)
