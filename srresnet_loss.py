@@ -34,10 +34,11 @@ class Loss(nn.Module):
     @staticmethod
     def ssim_loss_with_mask(x_real, x_fake,seg_map_real):
 
-        # seg_map_real = seg_map_real.squeeze(1)
-        # x_real = x_real*seg_map_real
-        # x_fake = x_fake*seg_map_real
+        seg_map_real = seg_map_real.squeeze(1)
+        x_real = x_real*seg_map_real
+        x_fake = x_fake*seg_map_real
         return ssim(x_real,x_fake)
+        
     @staticmethod
     def emd(x_real, x_fake,seg_map_real):
 
@@ -49,8 +50,6 @@ class Loss(nn.Module):
         x_real = x_real.squeeze(1)
         x_fake = x_fake.squeeze(1)
 
-        x_real = torch.clip(x_real,0.0001)
-        x_real = torch.clip(x_real,0.0001)
 
         return emd_loss(x_real,x_fake,sinkhorn=True)
 
