@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch
 
+from neuralnet_pytorch.metrics import emd_loss
 from neuralnet_pytorch.metrics import ssim
 
 class Loss(nn.Module):
@@ -37,6 +38,13 @@ class Loss(nn.Module):
         # x_real = x_real*seg_map_real
         # x_fake = x_fake*seg_map_real
         return ssim(x_real,x_fake)
+    @staticmethod
+    def emd(x_real, x_fake,mask=False):
+
+        # seg_map_real = seg_map_real.squeeze(1)
+        # x_real = x_real*seg_map_real
+        # x_fake = x_fake*seg_map_real
+        return emd_loss(x_real,x_fake)
 
     def adv_loss(self, x, is_real):
         # If fake we want "convince" that it is real
