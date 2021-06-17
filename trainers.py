@@ -51,6 +51,8 @@ def train_srresnet(srresnet, dataloader, device, experiment, lr=1e-4, total_step
                     mse_loss_mask = Loss.img_loss_with_mask(hr_real, hr_fake,hr_segs)
                     # ssim_loss = Loss.ssim_loss_with_mask(hr_real, hr_fake,hr_segs)
                     emd_loss = Loss.emd(hr_real, hr_fake,hr_segs)
+                    print(emd_loss)
+
                     emd_loss = torch.mean(emd_loss)
 
             else:
@@ -60,6 +62,8 @@ def train_srresnet(srresnet, dataloader, device, experiment, lr=1e-4, total_step
                 mse_loss_mask = 0.001*Loss.img_loss_with_mask(hr_real, hr_fake,hr_segs)
                 # ssim_loss = Loss.ssim_loss_with_mask(hr_real, hr_fake,hr_segs)
                 emd_loss = Loss.emd(hr_real, hr_fake,hr_segs)
+                print(emd_loss)
+
                 emd_loss = torch.mean(emd_loss)
 
             loss=mse_loss+mse_loss_mask+emd_loss
