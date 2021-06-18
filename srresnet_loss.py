@@ -35,7 +35,7 @@ class Loss(nn.Module):
 
     @staticmethod
     def l1_loss_with_mask(x_real, x_fake,seg_map_real):
-        return torch.sum(((x_real-x_fake)*seg_map_real))/torch.sum(seg_map_real)
+        return torch.sum(((torch.abs(x_real-x_fake))*seg_map_real))/torch.sum(seg_map_real)
 
     @staticmethod
     def ssim_loss_with_mask(x_real, x_fake,seg_map_real):
