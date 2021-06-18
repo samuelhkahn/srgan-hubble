@@ -35,6 +35,7 @@ class Loss(nn.Module):
     def ssim_loss_with_mask(x_real, x_fake,seg_map_real):
 
         seg_map_real = seg_map_real.squeeze(1)
+
         x_real = x_real*seg_map_real
         x_fake = x_fake*seg_map_real
 
@@ -63,6 +64,14 @@ class Loss(nn.Module):
         target = torch.zeros_like(x) if is_real else torch.ones_like(x)
         return F.binary_cross_entropy_with_logits(x, target)
 
+    def adv_wasserstein_gen_loss(self, fake_preds_for_d):
+        # loss = -torch.mean(fake_preds_for_d)
+        return -torch.mean(fake_preds_for_d)
+
+    def adv_wasserstein_disc_loss(self, real_preds_for_d,fake_preds_for_d):
+        # loss = -torch.mean(real_preds_for_d) + torch.mean(fake_preds_for_d)
+        return -torch.mean(real_preds_for_d) + torch.mean(fake_preds_for_d)       
+
     def vgg_loss(self, x_real, x_fake):
         #Copy across channel diension because VGG expects 3 channels
         x_real = torch.repeat_interleave(x_real, 3, dim=1)
@@ -72,22 +81,31 @@ class Loss(nn.Module):
     def forward(self, generator, discriminator, hr_real, lr_real,seg_map_real):
         ''' Performs forward pass and returns total losses for G and D '''
         hr_fake = generator(lr_real)
+
         fake_preds_for_g = discriminator(hr_fake)
         fake_preds_for_d = discriminator(hr_fake.detach())
         real_preds_for_d = discriminator(hr_real.detach())
 
-        vgg_loss = 0.006 * self.vgg_loss(hr_real, hr_fake)
+        # vgg_loss = 0.006 * self.vgg_loss(hr_real, hr_fake)
 
         img_loss_with_mask = self.img_loss_with_mask(hr_real, hr_fake,seg_map_real)
-        g_loss = (
-            0.1 * self.adv_loss(fake_preds_for_g, False) + \
-           # vgg_loss + \
-             img_loss_with_mask + \
-            self.img_loss(hr_real, hr_fake)
-        )
-        d_loss = 0.5 * (
-            self.adv_loss(real_preds_for_d, True) + \
-            self.adv_loss(fake_preds_for_d, False)
-        )
+
+        g_loss =  self.adv_wasserstein_gen_loss(fake_preds_for_g)
+
+        d_loss = 0.2*self.adv_wasserstein_disc_loss(real_preds_for_d,fake_preds_for_d)
+        print(g_loss)
+        print(d_loss)
+
+        vgg_loss = 0
+        # g_loss = (
+        #     self.adv_loss(fake_preds_for_g, False) + \
+        #    # vgg_loss + \
+        #      img_loss_with_mask + \
+        #     self.img_loss(hr_real, hr_fake)
+        # )
+        # # d_loss = 0.5 * (
+        # #     self.adv_loss(real_preds_for_d, True) + \
+        # #     self.adv_loss(fake_preds_for_d, False)
+        # # )
 
         return g_loss, d_loss,vgg_loss, hr_fake

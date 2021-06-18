@@ -4,7 +4,9 @@ import matplotlib.pyplot as plt
 from srresnet_loss import Loss
 import torch
 from torch.nn.utils import clip_grad_norm_
-
+from torch.autograd import Variable
+from torch import autograd
+import numpy as np
 # Parse torch version for autocast
 # ######################################################
 version = torch.__version__
@@ -44,32 +46,33 @@ def train_srresnet(srresnet, dataloader, device, experiment, lr=1e-4, total_step
             # Enable autocast to FP16 tensors (new feature since torch==1.6.0)
             # If you're running older versions of torch, comment this out
             # and use NVIDIA apex for mixed/half precision training
-            # if has_autocast:
-            #     with torch.cuda.amp.autocast(enabled=(device=='cuda')):
-            #         hr_fake = srresnet(lr_real)
-            #         mse_loss = Loss.img_loss(hr_real, hr_fake)
-            #         mse_loss_mask = Loss.img_loss_with_mask(hr_real, hr_fake,hr_segs)
-            #         # ssim_loss = Loss.ssim_loss_with_mask(hr_real, hr_fake,hr_segs)
-            #         emd_loss = Loss.emd(hr_real, hr_fake,hr_segs)
-            #         print(emd_loss)
+            if has_autocast:
+                with torch.cuda.amp.autocast(enabled=(device=='cuda')):
+                    hr_fake = srresnet(lr_real)
+                    mse_loss = Loss.img_loss(hr_real, hr_fake)
+                    mse_loss_mask = Loss.img_loss_with_mask(hr_real, hr_fake,hr_segs)
+                    # ssim_loss = Loss.ssim_loss_with_mask(hr_real, hr_fake,hr_segs)
+                    # emd_loss = Loss.emd(hr_real, hr_fake,hr_segs)
+                    # print(emd_loss)
 
-            #         emd_loss = torch.mean(emd_loss)
+                    # emd_loss = torch.mean(emd_loss)
 
-            # else:
+            else:
 
-            hr_fake = srresnet(lr_real)
-            mse_loss = Loss.img_loss(hr_real, hr_fake)
-            mse_loss_mask = Loss.img_loss_with_mask(hr_real, hr_fake,hr_segs)
-            ssim_loss = Loss.ssim_loss_with_mask(hr_real, hr_fake,hr_segs)
+                hr_fake = srresnet(lr_real)
+                mse_loss = Loss.img_loss(hr_real, hr_fake)
+                mse_loss_mask = Loss.img_loss_with_mask(hr_real, hr_fake,hr_segs)
+            # ssim_loss = Loss.ssim_loss_with_mask(hr_real, hr_fake,hr_segs)
             # emd_loss = Loss.emd(hr_real, hr_fake,hr_segs)
             # print(emd_loss)
 
             # emd_loss = torch.mean(emd_loss)
 
-            loss=0.001*mse_loss+0.001*mse_loss_mask+ssim_loss
-            print(mse_loss)
-            print(mse_loss_mask)
-            print(ssim_loss)
+            # loss=0.001*mse_loss+0.001*mse_loss_mask+ssim_loss
+            loss = mse_loss+ mse_loss_mask
+            # print(mse_loss)
+            # print(mse_loss_mask)
+            # print(ssim_loss)
             optimizer.zero_grad()
             loss.backward()
             clip_grad_norm_(srresnet.parameters(), 1.0)
@@ -112,7 +115,28 @@ def train_srresnet(srresnet, dataloader, device, experiment, lr=1e-4, total_step
                 break
     return srresnet
 
-def train_srgan(generator, discriminator, dataloader, device,experiment, lr=1e-4, total_steps=2e5, display_step=500):
+def compute_gradient_penalty(discriminator, real_samples, fake_samples):
+    """Calculates the gradient penalty loss for WGAN GP"""
+    # Random weight term for interpolation between real and fake samples
+    alpha = torch.Tensor(np.random.random((real_samples.size(0), 1, 1, 1)))
+    # Get random interpolation between real and fake samples
+    interpolates = (alpha * real_samples + ((1 - alpha) * fake_samples)).requires_grad_(True)
+    d_interpolates = discriminator(interpolates)
+    fake = Variable(torch.Tensor(real_samples.shape[0], 1).fill_(1.0), requires_grad=False)
+    # Get gradient w.r.t. interpolates
+    gradients = autograd.grad(
+        outputs=d_interpolates,
+        inputs=interpolates,
+        grad_outputs=fake,
+        create_graph=True,
+        retain_graph=True,
+        only_inputs=True,
+    )[0]
+    gradients = gradients.view(gradients.size(0), -1)
+    gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean()
+    return gradient_penalty
+
+def train_srgan(generator, discriminator, dataloader, device,experiment, lr=1e-4, total_steps=2e5, display_step=500,lambda_gp=1):
     generator = generator.to(device).train()
     discriminator = discriminator.to(device).train()
     loss_fn = Loss(device=device)
@@ -141,41 +165,54 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, lr=1e-4
             # Enable autocast to FP16 tensors (new feature since torch==1.6.0)
             # If you're running older versions of torch, comment this out
             # and use NVIDIA apex for mixed/half precision training
-            if has_autocast:
-                with torch.cuda.amp.autocast(enabled=(device=='cuda')):
-                    g_loss, d_loss,vgg_loss, hr_fake = loss_fn(
-                        generator, discriminator, hr_real, lr_real, hr_segs
-                    )
-            else:
-                g_loss, d_loss,vgg_loss, hr_fake = loss_fn(
-                    generator, discriminator, hr_real, lr_real, hr_segs
-                )
+            # if has_autocast:
+            #     with torch.cuda.amp.autocast(enabled=(device=='cuda')):
+            #         g_loss, d_loss,vgg_loss, hr_fake = loss_fn(
+            #             generator, discriminator, hr_real, lr_real, hr_segs
+            #         )
+            # else:
+            #     g_loss, d_loss,vgg_loss, hr_fake = loss_fn(
+            #         generator, discriminator, hr_real, lr_real, hr_segs
+            #     )
+
+            hr_fake = generator(lr_real).detach()
+            gradient_penalty = compute_gradient_penalty(discriminator, hr_real, hr_fake)
+            d_loss = -torch.mean(discriminator(hr_real)) +\
+                     torch.mean(discriminator(hr_fake))+ \
+                     lambda_gp*gradient_penalty
+
+            d_optimizer.zero_grad()
+            d_loss.backward()
+            d_optimizer.step()
+
+            hr_fake = generator(lr_real)
+            # Adversarial loss
+            g_loss = -torch.mean(discriminator(hr_fake))
+
 
 
             g_optimizer.zero_grad()
             g_loss.backward()
             g_optimizer.step()
 
-            d_optimizer.zero_grad()
-            d_loss.backward()
-            d_optimizer.step()
+
 
             mean_g_loss += g_loss.item() / display_step
             mean_d_loss += d_loss.item() / display_step
-            mean_vgg_loss += vgg_loss.item() / display_step
+            # mean_vgg_loss += vgg_loss.item() / display_step
 
 
             experiment.log_metric("Generator Loss",mean_g_loss)
             experiment.log_metric("Discriminator Loss",mean_d_loss)
-            experiment.log_metric("VGG Loss",vgg_loss)
+            # experiment.log_metric("VGG Loss",vgg_loss)
 
 
-            if cur_step == lr_step:
-                g_scheduler.step()
-                d_scheduler.step()
-                print('Decayed learning rate by 10x.')
+            # if cur_step == lr_step:
+            #     g_scheduler.step()
+            #     d_scheduler.step()
+            #     print('Decayed learning rate by 10x.')
 
-            if cur_step%10000==0:
+            if cur_step%50000==0:
                 torch.save(generator, f'srgenerator_checkpoint_median_scale_{cur_step}.pt')
                 torch.save(discriminator, f'srdiscriminator_median_scale_{cur_step}.pt')
 
@@ -186,6 +223,9 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, lr=1e-4
                 experiment.log_image(lr_real[0,:,:,:].cpu(),"Low Resolution")
                 experiment.log_image(hr_fake[0,:,:,:].cpu(),"Super Resolution")
                 experiment.log_image(hr_real[0,:,:,:].cpu(),"High Resolution")
+                img_diff = (hr_fake[0,:,:,:] - hr_real[0,:,:,:]).cpu()
+                experiment.log_image(img_diff,"Image Difference")
+
                 mean_g_loss = 0.0
                 mean_d_loss = 0.0
                 vgg_loss = 0.0
