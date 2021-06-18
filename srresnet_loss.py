@@ -29,7 +29,13 @@ class Loss(nn.Module):
     @staticmethod
     def img_loss_with_mask(x_real, x_fake,seg_map_real):
         return torch.sum(((x_real-x_fake)*seg_map_real)**2.0)/torch.sum(seg_map_real)
+    @staticmethod
+    def l1_loss(x_real, x_fake):
+        return F.l1_loss(x_real, x_fake)
 
+    @staticmethod
+    def l1_loss_with_mask(x_real, x_fake,seg_map_real):
+        return torch.sum(((x_real-x_fake)*seg_map_real))/torch.sum(seg_map_real)
 
     @staticmethod
     def ssim_loss_with_mask(x_real, x_fake,seg_map_real):
@@ -77,6 +83,8 @@ class Loss(nn.Module):
         x_real = torch.repeat_interleave(x_real, 3, dim=1)
         x_fake = torch.repeat_interleave(x_fake, 3, dim=1)
         return F.mse_loss(self.vgg(x_real), self.vgg(x_fake))
+
+
 
     def forward(self, generator, discriminator, hr_real, lr_real,seg_map_real):
         ''' Performs forward pass and returns total losses for G and D '''
