@@ -49,8 +49,8 @@ def train_srresnet(srresnet, dataloader, device, experiment, lr=1e-4, total_step
             if has_autocast:
                 with torch.cuda.amp.autocast(enabled=(device=='cuda')):
                     hr_fake = srresnet(lr_real)
-                    mse_loss = Loss.l1_loss(hr_real, hr_fake)
-                    mse_loss_mask = Loss.l1_loss_with_mask(hr_real, hr_fake,hr_segs)
+                    mse_loss = Loss.img_loss(hr_real, hr_fake)
+                    mse_loss_mask = Loss.img_loss_with_mask(hr_real, hr_fake,hr_segs)
                     # ssim_loss = Loss.ssim_loss_with_mask(hr_real, hr_fake,hr_segs)
                     # emd_loss = Loss.emd(hr_real, hr_fake,hr_segs)
                     # print(emd_loss)
@@ -115,10 +115,10 @@ def train_srresnet(srresnet, dataloader, device, experiment, lr=1e-4, total_step
                 break
     return srresnet
 
-def compute_gradient_penalty(discriminator, real_samples, fake_samples):
+def compute_gradient_penalty(discriminator, real_samples, fake_samples,device):
     """Calculates the gradient penalty loss for WGAN GP"""
     # Random weight term for interpolation between real and fake samples
-    alpha = torch.Tensor(np.random.random((real_samples.size(0), 1, 1, 1)))
+    alpha = torch.Tensor(np.random.random((real_samples.size(0), 1, 1, 1))).to(device)
     # Get random interpolation between real and fake samples
     interpolates = (alpha * real_samples + ((1 - alpha) * fake_samples)).requires_grad_(True)
     d_interpolates = discriminator(interpolates)
@@ -132,8 +132,8 @@ def compute_gradient_penalty(discriminator, real_samples, fake_samples):
         retain_graph=True,
         only_inputs=True,
     )[0]
-    gradients = gradients.view(gradients.size(0), -1)
-    gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean()
+    gradients = gradients.view(gradients.size(0), -1).to(device)
+    gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean().to(device)
     return gradient_penalty
 
 def train_srgan(generator, discriminator, dataloader, device,experiment, lr=1e-4, total_steps=2e5, display_step=500,lambda_gp=1):
@@ -176,7 +176,7 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, lr=1e-4
             #     )
 
             hr_fake = generator(lr_real).detach()
-            gradient_penalty = compute_gradient_penalty(discriminator, hr_real, hr_fake)
+            gradient_penalty = compute_gradient_penalty(discriminator, hr_real, hr_fake,device)
             d_loss = -torch.mean(discriminator(hr_real)) +\
                      torch.mean(discriminator(hr_fake))+ \
                      lambda_gp*gradient_penalty
