@@ -188,7 +188,7 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, lr=1e-4
 
             hr_fake = generator(lr_real)
             # Adversarial loss
-            if display_step %10 ==0 and display_step!=0:
+            if display_step %5 ==0 and display_step!=0:
                 g_loss = -torch.mean(discriminator(hr_fake))
                 g_optimizer.zero_grad()
                 g_loss.backward()
@@ -212,7 +212,7 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, lr=1e-4
                 torch.save(discriminator, f'srdiscriminator_median_scale_{cur_step}.pt')
 
 
-            if cur_step % display_step == 0 and cur_step > 0:
+            if cur_step % display_step == 0:
                 print('Step {}: Generator loss: {:.5f}, Discriminator loss: {:.5f}'.format(cur_step, mean_g_loss, mean_d_loss))
 #                print('Step {}: SRResNet loss: {:.5f}'.format(cur_step, mean_loss))
                 experiment.log_image(lr_real[0,:,:,:].cpu(),"Low Resolution")
