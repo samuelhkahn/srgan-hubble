@@ -188,7 +188,7 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, lr=1e-4
 
             hr_fake = generator(lr_real)
             # Adversarial loss
-            if display_steps %10 ==0 and display_steps!=0:
+            if display_step %10 ==0 and display_step!=0:
                 g_loss = -torch.mean(discriminator(hr_fake))
                 g_optimizer.zero_grad()
                 g_loss.backward()
