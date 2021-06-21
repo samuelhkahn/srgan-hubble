@@ -76,7 +76,7 @@ def main():
 	generator = torch.load(f'srresnet_{model_name}.pt')
 	discriminator = Discriminator(n_blocks=1, base_channels=8)
 
-	generator,discriminator = train_srgan(generator, discriminator, dataloader, device, experiment, lr=1e-4, total_steps=gan_steps, display_step=100,lambda_gp=10)
+	generator,discriminator = train_srgan(generator, discriminator, dataloader, device, experiment, lr=1e-5, total_steps=gan_steps, display_step=100,lambda_gp=10)
 	
 	torch.save(generator, f'srresnet_{model_name}.pt')
 	torch.save(discriminator, f'srdiscriminator_{model_name}.pt')
