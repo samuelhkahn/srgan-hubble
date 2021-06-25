@@ -66,12 +66,12 @@ def main():
 	)
 
 	# Define Generator
-	#generator = Generator(n_res_blocks=16, n_ps_blocks=2,pix_shuffle=True)
+	generator = Generator(n_res_blocks=16, n_ps_blocks=2,pix_shuffle=True)
 
-	# Pretrain 
-	#generator = train_srresnet(generator, dataloader, device, experiment, lr=1e-5, total_steps=srresnet_steps, display_step=100)
+	Pretrain 
+	generator = train_srresnet(generator, dataloader, device, experiment, lr=1e-5, total_steps=srresnet_steps, display_step=100)
 
-	#torch.save(generator, f'srresnet_{model_name}.pt')
+	torch.save(generator, f'srresnet_{model_name}.pt')
 
 	generator = torch.load(f'srresnet_{model_name}.pt')
 	discriminator = Discriminator(n_blocks=1, base_channels=8)
