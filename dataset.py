@@ -35,11 +35,9 @@ class SR_HST_HSC_Dataset(Dataset):
         self.hst_median = 2.696401406865334e-05
         self.hsc_median = 1.4194287359714508e-05
 
-        self.hst_min = -2.318
-        self.hsc_min = -0.168
-        
         self.hst_path = hst_path
         self.hsc_path = hsc_path
+
         self.transform_type = transform_type
         self.data_aug = data_aug
 
@@ -48,6 +46,12 @@ class SR_HST_HSC_Dataset(Dataset):
 
         self.to_pil = transforms.ToPILImage()
         self.to_tensor = transforms.ToTensor()
+
+        # HST clip range - (0,99.996)
+        self.hst_min,self.hst_max = (-4.656636714935303, 10.114138229022501)
+
+        # HSC clip range - (0,99.9)
+        self.hsc_min,self.hsc_max = (-0.4692089855670929, 12.432257350922441)
         
     def load_fits(self, file_path: str) -> np.ndarray:
         cutout = fits.open(file_path)
@@ -89,6 +93,15 @@ class SR_HST_HSC_Dataset(Dataset):
     def global_median_transformation(self,tensor:np.ndarray,median: float, std:float) -> np.ndarray:
         y = tensor - median
         normalized = y/std
+        return normalized
+
+    # Min max normalization with clipping
+    @staticmethod
+    def min_max_normalization(tensor:np.ndarray, min_val:float, max_val:float) -> np.ndarray:
+        tensor =  np.clip(tensor, min_val, max_val)
+        numerator = tensor-min_val
+        denominator = max_val-min_val
+        normalized = numerator/denominator
         return normalized
 
     # segmentation map
@@ -133,11 +146,13 @@ class SR_HST_HSC_Dataset(Dataset):
         elif self.transform_type == "global_median_scale":
             hst_transformation = self.global_median_transformation(hst_array,self.hst_median,self.hst_std)
             hsc_transformation = self.global_median_transformation(hsc_array,self.hsc_median,self.hsc_std)
-        # print(type(hst_transformation))
-        # hst_transformation = torch.from_numpy(hst_transformation)
-        # hsc_transformation = torch.from_numpy(hsc_transformation)
+        elif self.transform_type == "clip_min_max_norm":
+            hst_transformation = self.min_max_normalization(hst_array,self.hst_min,self.hst_max)
+            hsc_transformation = self.min_max_normalization(hsc_array,self.hsc_min,self.hsc_max)
+
         hst_transformation = self.to_pil(hst_transformation)
         hsc_transformation = self.to_pil(hsc_transformation)
+
 
         if self.data_aug == True:
         ## Flip Augmentations
