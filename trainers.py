@@ -26,7 +26,7 @@ def show_tensor_images(image_tensor):
     plt.imshow(image_grid.permute(1, 2, 0).squeeze())
     plt.show()
 
-def train_srresnet(srresnet, dataloader, device, experiment, lr=1e-4, total_steps=1e6, display_step=500):
+def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4, total_steps=1e6, display_step=500, ):
     srresnet = srresnet.to(device).train()
     optimizer = torch.optim.Adam(srresnet.parameters(), lr=lr)
 
@@ -107,8 +107,8 @@ def train_srresnet(srresnet, dataloader, device, experiment, lr=1e-4, total_step
 
 
 
-            if cur_step%20000==0:
-                torch.save(srresnet, f'srresnet_checkpoint_median_scale_{cur_step}.pt')
+            if cur_step%1==0:
+                torch.save(srresnet, f'srresnet_{model_name}_checkpoint_{cur_step}.pt')
 
             cur_step += 1
             if cur_step == total_steps:
@@ -136,7 +136,7 @@ def compute_gradient_penalty(discriminator, real_samples, fake_samples,device):
     gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean().to(device)
     return gradient_penalty
 
-def train_srgan(generator, discriminator, dataloader, device,experiment, lr=1e-4, total_steps=2e5, display_step=500,lambda_gp=1):
+def train_srgan(generator, discriminator, dataloader, device,experiment, model_name,lr=1e-4, total_steps=2e5, display_step=500,lambda_gp=1):
     generator = generator.to(device).train()
     discriminator = discriminator.to(device).train()
     loss_fn = Loss(device=device)
@@ -206,9 +206,9 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, lr=1e-4
             #     d_scheduler.step()
             #     print('Decayed learning rate by 10x.')
 
-            if cur_step%50000==0:
-                torch.save(generator, f'srgenerator_checkpoint_median_scale_{cur_step}.pt')
-                torch.save(discriminator, f'srdiscriminator_median_scale_{cur_step}.pt')
+            if cur_step%1==0:
+                torch.save(generator, f'srgenerator_{model_name}_checkpoint_{cur_step}.pt')
+                torch.save(discriminator, f'srdiscriminator_{model_name}_checkpoint_{cur_step}.pt')
 
 
             if cur_step % display_step == 0:
