@@ -48,7 +48,7 @@ class SR_HST_HSC_Dataset(Dataset):
         self.to_tensor = transforms.ToTensor()
 
         # HST clip range - (0,99.996)
-        self.hst_min,self.hst_max = (-4.656636714935303, 36.228747035183915)
+        self.hst_min,self.hst_max = (-4.656636714935303, 0.11904790546745403)
 
         # HSC clip range - (0,99.9)
         self.hsc_min,self.hsc_max = (-0.4692089855670929, 12.432257434845326)
