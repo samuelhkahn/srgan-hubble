@@ -48,10 +48,10 @@ class SR_HST_HSC_Dataset(Dataset):
         self.to_tensor = transforms.ToTensor()
 
         # HST clip range - (0,99.996)
-        self.hst_min,self.hst_max = (-4.656636714935303, 10.114138229022501)
+        self.hst_min,self.hst_max = (-4.656636714935303, 36.228747035183915)
 
         # HSC clip range - (0,99.9)
-        self.hsc_min,self.hsc_max = (-0.4692089855670929, 12.432257350922441)
+        self.hsc_min,self.hsc_max = (-0.4692089855670929, 12.432257434845326)
         
     def load_fits(self, file_path: str) -> np.ndarray:
         cutout = fits.open(file_path)
@@ -101,8 +101,14 @@ class SR_HST_HSC_Dataset(Dataset):
         tensor =  np.clip(tensor, min_val, max_val)
         numerator = tensor-min_val
         denominator = max_val-min_val
-        normalized = numerator/denominator
-        return normalized
+        tensor = numerator/denominator
+        return tensor
+
+    @staticmethod
+    def invert_min_max_normalization(tensor:np.ndarray, min_val:float, max_val:float) -> np.ndarray:
+        denominator = max_val-min_val
+        unnormalized=tensor*denominator+min_val
+        return unnormalized
 
     # segmentation map
     def get_segmentation_map(self,pixels:np.ndarray) -> np.ndarray:
@@ -174,4 +180,4 @@ class SR_HST_HSC_Dataset(Dataset):
 
 
 
-        return hst_tensor,hsc_tensor,hst_seg_map,
+        return hst_tensor,hsc_tensor,hst_seg_map

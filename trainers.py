@@ -26,6 +26,11 @@ def show_tensor_images(image_tensor):
     plt.imshow(image_grid.permute(1, 2, 0).squeeze())
     plt.show()
 
+def invert_min_max_normalization(tensor:np.ndarray, min_val:float, max_val:float) -> np.ndarray:
+    denominator = max_val-min_val
+    unnormalized=tensor*denominator+min_val
+    return unnormalized
+
 def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4, total_steps=1e6, display_step=500, ):
     srresnet = srresnet.to(device).train()
     optimizer = torch.optim.Adam(srresnet.parameters(), lr=lr)
@@ -35,6 +40,12 @@ def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4,
 
     cur_step = 0
     mean_loss = 0.0
+
+    # # HST clip range - (0,99.996)
+    # hst_min, hst_max = (-4.656636714935303, 10.114138229022501)
+
+    # # HSC clip range - (0,99.9)
+    # hsc_min, hsc_max = (-0.4692089855670929, 12.432257350922441)
 
     while cur_step < total_steps:
         for hr_real, lr_real, hr_segs in tqdm(dataloader, position=0):
@@ -87,11 +98,18 @@ def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4,
 
             if cur_step % display_step == 0 and cur_step > 0:
                 print('Step {}: SRResNet loss: {:.5f}'.format(cur_step, mean_loss))
-                experiment.log_image(lr_real[0,:,:,:].cpu(),"Low Resolution")
-                experiment.log_image(hr_fake[0,:,:,:].cpu(),"Super Resolution")
-                experiment.log_image(hr_real[0,:,:,:].cpu(),"High Resolution")
+                # lr_image = invert_min_max_normalization(lr_real[0,:,:,:].cpu(),hsc_min,hsc_max)
+                # sr_image = invert_min_max_normalization(hr_fake[0,:,:,:].cpu(),hst_min,hst_max)
+                # hr_image = invert_min_max_normalization(hr_real[0,:,:,:].cpu(),hst_min,hst_max)
 
-                img_diff = (hr_fake[0,:,:,:] - hr_real[0,:,:,:]).cpu()
+                lr_image = lr_real[0,:,:,:].cpu()
+                sr_image = hr_fake[0,:,:,:].cpu()
+                hr_image = hr_real[0,:,:,:].cpu()           
+                experiment.log_image(lr_image,"Low Resolution",image_minmax=(0,1))
+                experiment.log_image(sr_image,"Super Resolution",image_minmax=(0,1))
+                experiment.log_image(hr_image,"High Resolution",image_minmax=(0,1))
+
+                img_diff = (sr_image - hr_image).cpu()
 
                 experiment.log_image(img_diff,"Image Difference")
 
@@ -107,7 +125,7 @@ def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4,
 
 
 
-            if cur_step%1==0:
+            if cur_step%10000==0:
                 torch.save(srresnet, f'srresnet_{model_name}_checkpoint_{cur_step}.pt')
 
             cur_step += 1
@@ -152,6 +170,11 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
     mean_g_loss = 0.0
     mean_d_loss = 0.0
     mean_vgg_loss = 0.0
+    # # HST clip range - (0,99.996)
+    # hst_min, hst_max = (-4.656636714935303, 10.114138229022501)
+
+    # # HSC clip range - (0,99.9)
+    # hsc_min, hsc_max = (-0.4692089855670929, 12.432257350922441)
 
     while cur_step < total_steps:
         for hr_real, lr_real, hr_segs in tqdm(dataloader, position=0):
@@ -206,7 +229,7 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
             #     d_scheduler.step()
             #     print('Decayed learning rate by 10x.')
 
-            if cur_step%1==0:
+            if cur_step%50000==0:
                 torch.save(generator, f'srgenerator_{model_name}_checkpoint_{cur_step}.pt')
                 torch.save(discriminator, f'srdiscriminator_{model_name}_checkpoint_{cur_step}.pt')
 
@@ -214,10 +237,20 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
             if cur_step % display_step == 0:
                 print('Step {}: Generator loss: {:.5f}, Discriminator loss: {:.5f}'.format(cur_step, mean_g_loss, mean_d_loss))
 #                print('Step {}: SRResNet loss: {:.5f}'.format(cur_step, mean_loss))
-                experiment.log_image(lr_real[0,:,:,:].cpu(),"Low Resolution")
-                experiment.log_image(hr_fake[0,:,:,:].cpu(),"Super Resolution")
-                experiment.log_image(hr_real[0,:,:,:].cpu(),"High Resolution")
-                img_diff = (hr_fake[0,:,:,:] - hr_real[0,:,:,:]).cpu()
+                # lr_image = invert_min_max_normalization(lr_real[0,:,:,:].cpu(),hsc_min,hsc_max)
+                # sr_image = invert_min_max_normalization(hr_fake[0,:,:,:].cpu(),hst_min,hst_max)
+                # hr_image = invert_min_max_normalization(hr_real[0,:,:,:].cpu(),hst_min,hst_max)
+
+                lr_image = lr_real[0,:,:,:].cpu()
+                sr_image = hr_fake[0,:,:,:].cpu()
+                hr_image = hr_real[0,:,:,:].cpu()
+
+                experiment.log_image(lr_image,"Low Resolution",image_minmax=(0,1))
+                experiment.log_image(sr_image,"Super Resolution",image_minmax=(0,1))
+                experiment.log_image(hr_image,"High Resolution",image_minmax=(0,1))
+
+                img_diff = (sr_image - hr_image).cpu()
+
                 experiment.log_image(img_diff,"Image Difference")
 
                 mean_g_loss = 0.0
