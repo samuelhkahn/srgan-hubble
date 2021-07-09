@@ -42,10 +42,10 @@ def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4,
     mean_loss = 0.0
 
     # # HST clip range - (0,99.996)
-    # hst_min, hst_max = (-4.656636714935303, 10.114138229022501)
+    hst_min, hst_max = (-4.656636714935303, 36.228747035183915)
 
-    # # HSC clip range - (0,99.9)
-    # hsc_min, hsc_max = (-0.4692089855670929, 12.432257350922441)
+    # HSC clip range - (0,99.9)
+    hsc_min, hsc_max = (-0.4692089855670929, 12.432257350922441)
 
     while cur_step < total_steps:
         for hr_real, lr_real, hr_segs in tqdm(dataloader, position=0):
@@ -96,7 +96,7 @@ def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4,
 
 
 
-            if cur_step % display_step == 0 and cur_step > 0:
+            if cur_step % display_step == 0:# and cur_step > 0:
                 print('Step {}: SRResNet loss: {:.5f}'.format(cur_step, mean_loss))
                 # lr_image = invert_min_max_normalization(lr_real[0,:,:,:].cpu(),hsc_min,hsc_max)
                 # sr_image = invert_min_max_normalization(hr_fake[0,:,:,:].cpu(),hst_min,hst_max)
@@ -104,10 +104,15 @@ def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4,
 
                 lr_image = lr_real[0,:,:,:].cpu()
                 sr_image = hr_fake[0,:,:,:].cpu()
-                hr_image = hr_real[0,:,:,:].cpu()           
-                experiment.log_image(lr_image,"Low Resolution",image_minmax=(0,1))
-                experiment.log_image(sr_image,"Super Resolution",image_minmax=(0,1))
-                experiment.log_image(hr_image,"High Resolution",image_minmax=(0,1))
+                hr_image = hr_real[0,:,:,:].cpu()  
+
+                lr_image = invert_min_max_normalization(lr_image,hsc_min,hsc_max)
+                sr_image = invert_min_max_normalization(sr_image,hst_min,hst_max)               
+                hr_image = invert_min_max_normalization(hr_image,hst_min,hst_max)
+         
+                experiment.log_image(lr_image,"Low Resolution")
+                experiment.log_image(sr_image,"Super Resolution")
+                experiment.log_image(hr_image,"High Resolution")#,image_minmax=(0,1),cmap='gray')
 
                 img_diff = (sr_image - hr_image).cpu()
 
@@ -170,11 +175,12 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
     mean_g_loss = 0.0
     mean_d_loss = 0.0
     mean_vgg_loss = 0.0
-    # # HST clip range - (0,99.996)
-    # hst_min, hst_max = (-4.656636714935303, 10.114138229022501)
 
-    # # HSC clip range - (0,99.9)
-    # hsc_min, hsc_max = (-0.4692089855670929, 12.432257350922441)
+    # # HST clip range - (0,99.996)
+    hst_min, hst_max = (-4.656636714935303, 36.228747035183915)
+
+    # HSC clip range - (0,99.9)
+    hsc_min, hsc_max = (-0.4692089855670929, 12.432257350922441)
 
     while cur_step < total_steps:
         for hr_real, lr_real, hr_segs in tqdm(dataloader, position=0):
@@ -241,21 +247,25 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
                 # sr_image = invert_min_max_normalization(hr_fake[0,:,:,:].cpu(),hst_min,hst_max)
                 # hr_image = invert_min_max_normalization(hr_real[0,:,:,:].cpu(),hst_min,hst_max)
 
+
                 lr_image = lr_real[0,:,:,:].cpu()
                 sr_image = hr_fake[0,:,:,:].cpu()
-                hr_image = hr_real[0,:,:,:].cpu()
+                hr_image = hr_real[0,:,:,:].cpu()  
 
-                experiment.log_image(lr_image,"Low Resolution",image_minmax=(0,1))
-                experiment.log_image(sr_image,"Super Resolution",image_minmax=(0,1))
-                experiment.log_image(hr_image,"High Resolution",image_minmax=(0,1))
-
+                lr_image = invert_min_max_normalization(lr_image,hsc_min,hsc_max)
+                sr_image = invert_min_max_normalization(sr_image,hst_min,hst_max)               
+                hr_image = invert_min_max_normalization(hr_image,hst_min,hst_max)
+                
+                experiment.log_image(lr_image,"Low Resolution")
+                experiment.log_image(sr_image,"Super Resolution")
+                experiment.log_image(hr_image,"High Resolution")
                 img_diff = (sr_image - hr_image).cpu()
 
                 experiment.log_image(img_diff,"Image Difference")
 
-                mean_g_loss = 0.0
-                mean_d_loss = 0.0
-                vgg_loss = 0.0
+            mean_g_loss = 0.0
+            mean_d_loss = 0.0
+            vgg_loss = 0.0
 
 
             cur_step += 1
