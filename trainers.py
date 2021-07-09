@@ -96,7 +96,7 @@ def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4,
 
 
 
-            if cur_step % display_step == 0:# and cur_step > 0:
+            if cur_step % display_step == 0 and cur_step > 0:
                 print('Step {}: SRResNet loss: {:.5f}'.format(cur_step, mean_loss))
                 # lr_image = invert_min_max_normalization(lr_real[0,:,:,:].cpu(),hsc_min,hsc_max)
                 # sr_image = invert_min_max_normalization(hr_fake[0,:,:,:].cpu(),hst_min,hst_max)
@@ -255,7 +255,7 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
                 lr_image = invert_min_max_normalization(lr_image,hsc_min,hsc_max)
                 sr_image = invert_min_max_normalization(sr_image,hst_min,hst_max)               
                 hr_image = invert_min_max_normalization(hr_image,hst_min,hst_max)
-                
+
                 experiment.log_image(lr_image,"Low Resolution")
                 experiment.log_image(sr_image,"Super Resolution")
                 experiment.log_image(hr_image,"High Resolution")
