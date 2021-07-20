@@ -1,7 +1,9 @@
+*ipynb
 *pyc
 *pt
 *pth
 __pycache__/
 srgan-env/
+srgan-hubble/
 *.job
 *.config
