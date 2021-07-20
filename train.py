@@ -68,7 +68,7 @@ def main():
 	# Define Generator
 	generator = Generator(n_res_blocks=16, n_ps_blocks=2,pix_shuffle=True)
 
-	generator = train_srresnet(generator, dataloader, device, experiment,model_name, lr=1e-2, total_steps=srresnet_steps, display_step=100)
+	generator = train_srresnet(generator, dataloader, device, experiment,model_name, lr=1e-4, total_steps=srresnet_steps, display_step=100)
 
 	torch.save(generator, f'srresnet_{model_name}.pt')
 
