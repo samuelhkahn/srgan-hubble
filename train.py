@@ -6,7 +6,16 @@ from discriminator import Discriminator
 from trainers import train_srresnet,train_srgan
 from dataset import SR_HST_HSC_Dataset
 import numpy as np
-import configparser 
+import configparser
+
+
+# Load file paths from config
+config = configparser.ConfigParser()
+config.read('paths.config')
+hst_dim = int(config["HST_DIM"]["hst_dim"])
+hsc_dim = int(config["HSC_DIM"]["hsc_dim"])
+
+
 def collate_fn(batch):
 	hrs, lrs, hr_segs = [], [], []
 
@@ -17,7 +26,7 @@ def collate_fn(batch):
 		hr_inf = torch.isinf(hr).any()
 		lr_inf = torch.isinf(lr).any()
 		good_vals = [hr_nan,lr_nan,hr_inf,lr_inf]
-		if hr.shape == (600,600) and lr.shape == (100,100) and True not in good_vals:
+		if hr.shape == (hst_dim,hst_dim) and lr.shape == (hsc_dim,hsc_dim) and True not in good_vals:
 			hrs.append(hr)
 			lrs.append(lr)
 			hr_segs.append(hr_seg)
@@ -45,6 +54,8 @@ def main():
 	srresnet_steps = int(config["SRRESENET_STEPS"]["srresnet_steps"])
 	gan_steps = int(config["GAN_STEPS"]["gan_steps"])
 
+	hst_dim = int(config["HST_DIM"]["hst_dim"])
+	hsc_dim = int(config["HSC_DIM"]["hsc_dim"])
 
 	# Adding Comet Logging
 	api_key = os.environ['COMET_ML_ASTRO_API_KEY']
@@ -60,8 +71,8 @@ def main():
 
 	# Create Dataloader
 	dataloader = torch.utils.data.DataLoader(
-	    SR_HST_HSC_Dataset(hst_path = hst_path , hsc_path = hsc_path, hr_size=[600, 600], 
-	    	lr_size=[100, 100], transform_type = "global_median_scale",data_aug = False), 
+	    SR_HST_HSC_Dataset(hst_path = hst_path , hsc_path = hsc_path, hr_size=[hst_dim, hst_dim], 
+	    	lr_size=[hsc_dim, hsc_dim], transform_type = "global_median_scale",data_aug = True), 
 	    batch_size=batch_size, pin_memory=True, shuffle=True, collate_fn = collate_fn
 	)
 

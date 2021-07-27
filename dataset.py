@@ -169,6 +169,10 @@ class SR_HST_HSC_Dataset(Dataset):
             if random.random() >0.5:
                 hst_transformation = TF.hflip(hst_transformation)
                 hsc_transformation  = TF.hflip(hsc_transformation)
+            if random.random() >0.5:
+                rotation = random.randint(-45,45)
+                hst_transformation = TF.rotate(hst_transformation,rotation)
+                hsc_transformation  = TF.rotate(hsc_transformation,rotation)
 
         # Convert to Tensor
         hst_tensor = self.to_tensor(hst_transformation)
