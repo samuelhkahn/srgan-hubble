@@ -114,7 +114,9 @@ class SR_HST_HSC_Dataset(Dataset):
     def get_segmentation_map(self,pixels:np.ndarray) -> np.ndarray:
             # pixels = pixels.byteswap().newbyteorder()
             bkg = sep.Background(pixels)
-            mask = sep.extract(pixels, 3, err=bkg.globalrms,segmentation_map=True)[1]
+            mask = sep.extract(pixels, 3, 
+                                err=bkg.globalrms,
+                                segmentation_map=True)[1]
             mask[mask>0]=1
             return  mask
 
@@ -165,14 +167,17 @@ class SR_HST_HSC_Dataset(Dataset):
             if random.random() > 0.5:
                 hst_transformation = TF.vflip(hst_transformation)
                 hsc_transformation  = TF.vflip(hsc_transformation)
-
+                hst_seg_map = TF.vflip(hst_seg_map)
             if random.random() >0.5:
                 hst_transformation = TF.hflip(hst_transformation)
                 hsc_transformation  = TF.hflip(hsc_transformation)
+                hst_seg_map = TF.vflip(hst_seg_map)
+
             if random.random() >0.5:
                 rotation = random.randint(-45,45)
                 hst_transformation = TF.rotate(hst_transformation,rotation)
                 hsc_transformation  = TF.rotate(hsc_transformation,rotation)
+                hst_seg_map  = TF.rotate(hst_seg_map,rotation)
 
         # Convert to Tensor
         hst_tensor = self.to_tensor(hst_transformation)
