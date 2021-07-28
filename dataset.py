@@ -10,6 +10,7 @@ import random
 import torchvision.transforms.functional as TF
 import sep
 
+
 class SR_HST_HSC_Dataset(Dataset):
     '''
     Dataset Class
@@ -21,11 +22,14 @@ class SR_HST_HSC_Dataset(Dataset):
 
     def __init__(self, hst_path: str, hsc_path:str, hr_size: list, lr_size: list, transform_type: str, data_aug: bool ) -> None:
         super().__init__()
+        
+        sep.set_extract_pixstack(1000000)
 
         if hr_size is not None and lr_size is not None:
             assert hr_size[0] == 6 * lr_size[0]
             assert hr_size[1] == 6 * lr_size[1]
-        
+
+
         self.hsc_std = 0.04180176637927356
         self.hst_std = 0.0010912614529011736
 
@@ -116,8 +120,7 @@ class SR_HST_HSC_Dataset(Dataset):
             bkg = sep.Background(pixels)
             mask = sep.extract(pixels, 3, 
                                 err=bkg.globalrms,
-                                segmentation_map=True,
-                                set_extract_pixstack=1000000)[1]
+                                segmentation_map=True)[1]
             mask[mask>0]=1
             return  mask
 
