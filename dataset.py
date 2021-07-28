@@ -116,7 +116,8 @@ class SR_HST_HSC_Dataset(Dataset):
             bkg = sep.Background(pixels)
             mask = sep.extract(pixels, 3, 
                                 err=bkg.globalrms,
-                                segmentation_map=True)[1]
+                                segmentation_map=True,
+                                set_extract_pixstack=1000000)[1]
             mask[mask>0]=1
             return  mask
 
