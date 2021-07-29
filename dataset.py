@@ -22,7 +22,7 @@ class SR_HST_HSC_Dataset(Dataset):
 
     def __init__(self, hst_path: str, hsc_path:str, hr_size: list, lr_size: list, transform_type: str, data_aug: bool ) -> None:
         super().__init__()
-        
+
         sep.set_extract_pixstack(1000000)
 
         if hr_size is not None and lr_size is not None:
@@ -178,7 +178,7 @@ class SR_HST_HSC_Dataset(Dataset):
                 hst_seg_map = TF.vflip(hst_seg_map)
 
             if random.random() >0.5:
-                rotation = random.randint(-45,45)
+                rotation = random.randint(-10,10)
                 hst_transformation = TF.rotate(hst_transformation,rotation)
                 hsc_transformation  = TF.rotate(hsc_transformation,rotation)
                 hst_seg_map  = TF.rotate(hst_seg_map,rotation)
