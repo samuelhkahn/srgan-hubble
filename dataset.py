@@ -185,7 +185,7 @@ class SR_HST_HSC_Dataset(Dataset):
                 
             if random.random() >0.5:
                 hsc_transformation  = TF.hflip(hsc_transformation)
-                hst_seg_stack  = TF.vflip(hst_seg_stack)
+                hst_seg_stack  = TF.hflip(hst_seg_stack)
 
 
         # Collapse First Dimension and extract hst/seg_map
