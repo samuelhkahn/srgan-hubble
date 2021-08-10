@@ -9,7 +9,7 @@ import torch
 import random
 import torchvision.transforms.functional as TF
 import sep
-
+from torchvision.transforms import CenterCrop
 
 class SR_HST_HSC_Dataset(Dataset):
     '''
@@ -136,7 +136,7 @@ class SR_HST_HSC_Dataset(Dataset):
         hst_array = self.load_fits(hst_image)
         hsc_array = self.load_fits(hsc_image)
 
-        hst_seg_map = self.to_tensor(self.get_segmentation_map(hst_array))
+        hst_seg_map = self.get_segmentation_map(hst_array)
 
         # scale LR image with median scale factor
         #hsc_array = self.scale_tensor(hsc_array,self.median_scale)
@@ -161,36 +161,37 @@ class SR_HST_HSC_Dataset(Dataset):
         elif self.transform_type == "clip_min_max_norm":
             hst_transformation = self.min_max_normalization(hst_array,self.hst_min,self.hst_max)
             hsc_transformation = self.min_max_normalization(hsc_array,self.hsc_min,self.hsc_max)
+        # Add Segmap to second channel to ensure proper augmentations
+        hst_seg_stack = np.dstack((hst_transformation,hst_seg_map))
+        hst_seg_stack = self.to_tensor(hst_seg_stack)
 
-        hst_transformation = self.to_pil(hst_transformation)
-        hsc_transformation = self.to_pil(hsc_transformation)
 
+        hsc_transformation = self.to_tensor(hsc_transformation)
 
         if self.data_aug == True:
+            # Rotate 
+            rotation = random.randint(0,359)
+            hsc_transformation  = TF.rotate(hsc_transformation,rotation)
+            hst_seg_stack = TF.rotate(hst_seg_stack,rotation)
+
+            #Center Crop 
+            hsc_transformation = TF.center_crop(hsc_transformation,[100,100])
+            hst_seg_stack = TF.center_crop(hst_seg_stack,[600,600])
+
         ## Flip Augmentations
             if random.random() > 0.5:
-                hst_transformation = TF.vflip(hst_transformation)
                 hsc_transformation  = TF.vflip(hsc_transformation)
-                hst_seg_map = TF.vflip(hst_seg_map)
+                hst_seg_stack  = TF.vflip(hst_seg_stack)
+                
             if random.random() >0.5:
-                hst_transformation = TF.hflip(hst_transformation)
                 hsc_transformation  = TF.hflip(hsc_transformation)
-                hst_seg_map = TF.vflip(hst_seg_map)
+                hst_seg_stack  = TF.vflip(hst_seg_stack)
 
-            if random.random() >0.5:
-                rotation = random.randint(-10,10)
-                hst_transformation = TF.rotate(hst_transformation,rotation)
-                hsc_transformation  = TF.rotate(hsc_transformation,rotation)
-                hst_seg_map  = TF.rotate(hst_seg_map,rotation)
 
-        # Convert to Tensor
-        hst_tensor = self.to_tensor(hst_transformation)
-        hsc_tensor = self.to_tensor(hsc_transformation)
-
-        # Collapse First Dimension
-        hst_tensor = hst_tensor.squeeze(0)
-        hsc_tensor = hsc_tensor.squeeze(0)
-
+        # Collapse First Dimension and extract hst/seg_map
+        hst_tensor = hst_seg_stack[0,:,:].squeeze(0)
+        hst_seg_map = hst_seg_stack[1,:,:].squeeze(0)
+        hsc_tensor = hsc_transformation.squeeze(0)
 
 
         return hst_tensor,hsc_tensor,hst_seg_map

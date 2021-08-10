@@ -59,7 +59,6 @@ def main():
 
 	# Adding Comet Logging
 	api_key = os.environ['COMET_ML_ASTRO_API_KEY']
-	print(api_key)
 	experiment = Experiment(
 	    api_key=api_key,
 	    project_name="Super Resolution GAN: HSC->HST",
