@@ -186,6 +186,10 @@ class SR_HST_HSC_Dataset(Dataset):
             if random.random() >0.5:
                 hsc_transformation  = TF.hflip(hsc_transformation)
                 hst_seg_stack  = TF.hflip(hst_seg_stack)
+        else:
+             #Center Crop 
+            hsc_transformation = TF.center_crop(hsc_transformation,[100,100])
+            hst_seg_stack = TF.center_crop(hst_seg_stack,[600,600])           
 
 
         # Collapse First Dimension and extract hst/seg_map
