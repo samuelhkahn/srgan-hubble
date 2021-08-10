@@ -105,13 +105,14 @@ def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4,
                 lr_image = lr_real[0,:,:,:].cpu()
                 sr_image = hr_fake[0,:,:,:].cpu()
                 hr_image = hr_real[0,:,:,:].cpu()  
-
+                seg_image = hr_segs[0,:,:,:].cpu()
                 # lr_image = invert_min_max_normalization(lr_image,hsc_min,hsc_max)
                 # sr_image = invert_min_max_normalization(sr_image,hst_min,hst_max)               
                 # hr_image = invert_min_max_normalization(hr_image,hst_min,hst_max)
          
                 experiment.log_image(lr_image,"Low Resolution")
                 experiment.log_image(sr_image,"Super Resolution")
+                experiment.log_image(seg_image,"Segmentation Map")#,image_minmax=(0,1),cmap='gray')
                 experiment.log_image(hr_image,"High Resolution")#,image_minmax=(0,1),cmap='gray')
 
                 img_diff = (sr_image - hr_image).cpu()
