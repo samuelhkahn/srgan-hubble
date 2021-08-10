@@ -23,6 +23,7 @@ class SR_HST_HSC_Dataset(Dataset):
     def __init__(self, hst_path: str, hsc_path:str, hr_size: list, lr_size: list, transform_type: str, data_aug: bool ) -> None:
         super().__init__()
 
+        sep.set_extract_pixstack(1000000)
 
         if hr_size is not None and lr_size is not None:
             assert hr_size[0] == 6 * lr_size[0]
@@ -192,10 +193,5 @@ class SR_HST_HSC_Dataset(Dataset):
         hst_seg_map = hst_seg_stack[1,:,:].squeeze(0)
         hsc_tensor = hsc_transformation.squeeze(0)
 
-        print(hst_tensor.shape)
-        print(hst_seg_map.shape)
-
-        print(hst_tensor)
-        print(hst_seg_map)
 
         return hst_tensor,hsc_tensor,hst_seg_map
