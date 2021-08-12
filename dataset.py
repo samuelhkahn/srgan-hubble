@@ -10,7 +10,6 @@ import random
 import torchvision.transforms.functional as TF
 import sep
 from torchvision.transforms import CenterCrop
-
 class SR_HST_HSC_Dataset(Dataset):
     '''
     Dataset Class
@@ -171,8 +170,9 @@ class SR_HST_HSC_Dataset(Dataset):
         if self.data_aug == True:
             # Rotate 
             rotation = random.randint(0,359)
-            hsc_transformation  = TF.rotate(hsc_transformation,rotation)
-            hst_seg_stack = TF.rotate(hst_seg_stack,rotation)
+            # 2 = BiLinear
+            hsc_transformation  = TF.rotate(hsc_transformation,rotation,interpolation = TF.InterpolationMode.BILINEAR)
+            hst_seg_stack = TF.rotate(hst_seg_stack,rotation,interpolation = TF.InterpolationMode.BILINEAR)
 
             #Center Crop 
             hsc_transformation = TF.center_crop(hsc_transformation,[100,100])
@@ -193,9 +193,9 @@ class SR_HST_HSC_Dataset(Dataset):
 
 
         # Collapse First Dimension and extract hst/seg_map
-        hst_tensor = hst_seg_stack[0,:,:].squeeze(0)
-        hst_seg_map = hst_seg_stack[1,:,:].squeeze(0)
-        hsc_tensor = hsc_transformation.squeeze(0)
+        hst_tensor = hst_seg_stack[0,:,:].squeeze(0).float()
+        hst_seg_map = hst_seg_stack[1,:,:].squeeze(0).float()
+        hsc_tensor = hsc_transformation.squeeze(0).float()
 
 
         return hst_tensor,hsc_tensor,hst_seg_map

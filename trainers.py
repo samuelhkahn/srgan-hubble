@@ -160,7 +160,7 @@ def compute_gradient_penalty(discriminator, real_samples, fake_samples,device):
     gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean().to(device)
     return gradient_penalty
 
-def train_srgan(generator, discriminator, dataloader, device,experiment, model_name,lr=1e-4, total_steps=2e5, display_step=500,lambda_gp=1):
+def train_srgan(generator, discriminator, dataloader, device,experiment, model_name,lr=1e-4, total_steps=2e5, display_step=100,lambda_gp=1):
     generator = generator.to(device).train()
     discriminator = discriminator.to(device).train()
     loss_fn = Loss(device=device)
@@ -248,7 +248,7 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
                 torch.save(discriminator, f'srdiscriminator_{model_name}_checkpoint_{cur_step}.pt')
 
 
-            if cur_step % display_step == 0:
+            if cur_step % display_step == 0 and cur_step > 0:
                 print('Step {}: Generator loss: {:.5f}, Discriminator loss: {:.5f}'.format(cur_step, mean_g_loss, mean_d_loss))
 #                print('Step {}: SRResNet loss: {:.5f}'.format(cur_step, mean_loss))
                 # lr_image = invert_min_max_normalization(lr_real[0,:,:,:].cpu(),hsc_min,hsc_max)
