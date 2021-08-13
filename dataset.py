@@ -142,17 +142,19 @@ class SR_HST_HSC_Dataset(Dataset):
         # hst_array = self.to_tensor(hsc_array)
 
         if self.data_aug == True:
-            # Rotate 
-            rotation = random.randint(0,359)
-            # 2 = BiLinear
-            hsc_array = TF.rotate(hsc_array,rotation,
-                                interpolation = TF.InterpolationMode.BILINEAR)
-            hst_array = TF.rotate(hst_array,rotation,
-                                interpolation = TF.InterpolationMode.BILINEAR)
+            if random.random() > 0.5:
 
-            #Center Crop 
-            hsc_array = TF.center_crop(hsc_array,[100,100])
-            hst_array = TF.center_crop(hst_array,[600,600])
+                # Rotate 
+                rotation = random.randint(0,359)
+                # 2 = BiLinear
+                hsc_array = TF.rotate(hsc_array,rotation,
+                                    interpolation = TF.InterpolationMode.BILINEAR)
+                hst_array = TF.rotate(hst_array,rotation,
+                                    interpolation = TF.InterpolationMode.BILINEAR)
+
+                #Center Crop 
+                hsc_array = TF.center_crop(hsc_array,[100,100])
+                hst_array = TF.center_crop(hst_array,[600,600])
 
         ## Flip Augmentations
             if random.random() > 0.5:
