@@ -135,6 +135,40 @@ class SR_HST_HSC_Dataset(Dataset):
         hst_array = self.load_fits(hst_image)
         hsc_array = self.load_fits(hsc_image)
 
+        hst_array = self.to_pil(hst_array)
+        hsc_array = self.to_pil(hsc_array)
+
+        # hsc_array = self.to_tensor(hst_array)
+        # hst_array = self.to_tensor(hsc_array)
+
+        if self.data_aug == True:
+            # Rotate 
+            rotation = random.randint(0,359)
+            # 2 = BiLinear
+            hsc_array = TF.rotate(hsc_array,rotation,
+                                interpolation = TF.InterpolationMode.BILINEAR)
+            hst_array = TF.rotate(hst_array,rotation,
+                                interpolation = TF.InterpolationMode.BILINEAR)
+
+            #Center Crop 
+            hsc_array = TF.center_crop(hsc_array,[100,100])
+            hst_array = TF.center_crop(hst_array,[600,600])
+
+        ## Flip Augmentations
+            if random.random() > 0.5:
+                hsc_array  = TF.vflip(hsc_array)
+                hst_array  = TF.vflip(hst_array)
+                
+            if random.random() >0.5:
+                hsc_array  = TF.hflip(hsc_array)
+                hst_array  = TF.hflip(hst_array)
+        else:
+             #Center Crop 
+            hsc_array = TF.center_crop(hsc_array,[100,100])
+            hst_array = TF.center_crop(hst_array,[600,600])
+
+        hsc_array = np.array(hsc_array)
+        hst_array = np.array(hst_array)
         hst_seg_map = self.get_segmentation_map(hst_array)
 
         # scale LR image with median scale factor
@@ -161,41 +195,14 @@ class SR_HST_HSC_Dataset(Dataset):
             hst_transformation = self.min_max_normalization(hst_array,self.hst_min,self.hst_max)
             hsc_transformation = self.min_max_normalization(hsc_array,self.hsc_min,self.hsc_max)
         # Add Segmap to second channel to ensure proper augmentations
-        hst_seg_stack = np.dstack((hst_transformation,hst_seg_map))
-        hst_seg_stack = self.to_tensor(hst_seg_stack)
-
-
-        hsc_transformation = self.to_tensor(hsc_transformation)
-
-        if self.data_aug == True:
-            # Rotate 
-            rotation = random.randint(0,359)
-            # 2 = BiLinear
-            hsc_transformation  = TF.rotate(hsc_transformation,rotation,interpolation = TF.InterpolationMode.BILINEAR)
-            hst_seg_stack = TF.rotate(hst_seg_stack,rotation,interpolation = TF.InterpolationMode.BILINEAR)
-
-            #Center Crop 
-            hsc_transformation = TF.center_crop(hsc_transformation,[100,100])
-            hst_seg_stack = TF.center_crop(hst_seg_stack,[600,600])
-
-        ## Flip Augmentations
-            if random.random() > 0.5:
-                hsc_transformation  = TF.vflip(hsc_transformation)
-                hst_seg_stack  = TF.vflip(hst_seg_stack)
-                
-            if random.random() >0.5:
-                hsc_transformation  = TF.hflip(hsc_transformation)
-                hst_seg_stack  = TF.hflip(hst_seg_stack)
-        else:
-             #Center Crop 
-            hsc_transformation = TF.center_crop(hsc_transformation,[100,100])
-            hst_seg_stack = TF.center_crop(hst_seg_stack,[600,600])           
+        # hst_seg_stack = np.dstack((hst_transformation,hst_seg_map))
+        # hst_seg_stack = self.to_tensor(hst_seg_stack)        
 
 
         # Collapse First Dimension and extract hst/seg_map
-        hst_tensor = hst_seg_stack[0,:,:].squeeze(0).float()
-        hst_seg_map = hst_seg_stack[1,:,:].squeeze(0).float()
-        hsc_tensor = hsc_transformation.squeeze(0).float()
+        hst_tensor = self.to_tensor(hst_transformation).squeeze(0)
+        hst_seg_map = self.to_tensor(hst_seg_map).squeeze(0)
+        hsc_tensor = self.to_tensor(hsc_transformation).squeeze(0)
 
 
         return hst_tensor,hsc_tensor,hst_seg_map
