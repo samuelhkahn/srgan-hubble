@@ -209,9 +209,10 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
 
             real_disc_loss = torch.mean(discriminator(hr_real))
             fake_disc_loss = torch.mean(discriminator(hr_fake))
-            d_loss = real_disc_loss + \
-                     -fake_disc_loss + \
-                     lambda_gp*gradient_penalty
+            gradient_penalty = lambda_gp*gradient_penalty
+            d_loss = fake_disc_loss + \
+                     - real_disc_loss+ \
+                     gradient_penalty
 
             d_optimizer.zero_grad()
             d_loss.backward()
@@ -221,7 +222,7 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
             # hr_fake = generator(lr_real)
             # Adversarial loss
             
-            if display_step %1 ==0 and display_step!=0:
+            if display_step %5 ==0 and display_step!=0:
                 g_loss = -torch.mean(discriminator(hr_fake))
                 g_optimizer.zero_grad()
                 g_loss.backward()
@@ -234,6 +235,7 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
             experiment.log_metric("Discriminator Loss",mean_d_loss)
             experiment.log_metric("Real Disc Loss Component",real_disc_loss)
             experiment.log_metric("Fake Disc Loss Component",fake_disc_loss)
+            experiment.log_metric("Gradient Penalty",gradient_penalty)
 
             # experiment.log_metric("VGG Loss",vgg_loss)
 
