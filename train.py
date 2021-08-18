@@ -46,7 +46,9 @@ def main():
 	# Configuration Information
 	hst_path = config["DEFAULT"]["hst_path"]
 	hsc_path = config["DEFAULT"]["hsc_path"]
-	model_name = config["MODEL_NAME"]["model_name"]
+
+	srresnet_model_name = config["SRRESNET_MODEL_NAME"]["model_name"]
+	gan_model_name = config["GAN_MODEL_NAME"]["model_name"]
 
 	comet_tag = config["COMET_TAG"]["comet_tag"]
 
@@ -78,17 +80,17 @@ def main():
 	# Define Generator
 	generator = Generator(n_res_blocks=16, n_ps_blocks=2,pix_shuffle=True)
 
-	generator = train_srresnet(generator, dataloader, device, experiment,model_name, lr=1e-4, total_steps=srresnet_steps, display_step=25)
+	generator = train_srresnet(generator, dataloader, device, experiment,srresnet_model_name, lr=1e-4, total_steps=srresnet_steps, display_step=25)
 
-	torch.save(generator, f'srresnet_{model_name}.pt')
+	torch.save(generator, f'srresnet_{srresnet_model_name}.pt')
 
-	generator = torch.load(f'srresnet_{model_name}.pt')
+	generator = torch.load(f'srresnet_{srresnet_model_name}.pt')
 	discriminator = Discriminator(n_blocks=1, base_channels=8)
 
-	generator,discriminator = train_srgan(generator, discriminator, dataloader, device, experiment,model_name, lr=1e-2, total_steps=gan_steps, display_step=25,lambda_gp=10)
+	generator,discriminator = train_srgan(generator, discriminator, dataloader, device, experiment,gan_model_name, lr=1e-2, total_steps=gan_steps, display_step=25,lambda_gp=10)
 	
-	torch.save(generator, f'srgenerator_{model_name}.pt')
-	torch.save(discriminator, f'srdiscriminator_{model_name}.pt')
+	torch.save(generator, f'srgenerator_{gan_model_name}.pt')
+	torch.save(discriminator, f'srdiscriminator_{gan_model_name}.pt')
 
 
 if __name__=="__main__":
