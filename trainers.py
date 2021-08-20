@@ -182,15 +182,14 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
 
     # HSC clip range - (0,99.9)
     hsc_min, hsc_max = (-0.4692089855670929, 12.432257350922441)
+    torch.autograd.set_detect_anomaly(True)
 
     while cur_step < total_steps:
-        for hr_real, lr_real, hr_segs in tqdm(dataloader, position=0):
-            hr_real = hr_real.to(device)
-            lr_real = lr_real.to(device)
+        for hr, lr, seg in tqdm(dataloader, position=0):
             
-            hr_real = hr_real.unsqueeze(1).to(device)
-            lr_real = lr_real.unsqueeze(1).to(device)
-            hr_segs = hr_segs.unsqueeze(1).to(device)
+            hr_real = hr.unsqueeze(1).to(device)
+            lr_real = lr.unsqueeze(1).to(device)
+            hr_segs = seg.unsqueeze(1).to(device)
 
             # Enable autocast to FP16 tensors (new feature since torch==1.6.0)
             # If you're running older versions of torch, comment this out
@@ -206,17 +205,31 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
             #     )
             hr_fake = generator(lr_real).detach()
             gradient_penalty = compute_gradient_penalty(discriminator, hr_real, hr_fake,device)
-
+            print("1")
             real_disc_loss = torch.mean(discriminator(hr_real))
+            print("2")
+
             fake_disc_loss = torch.mean(discriminator(hr_fake))
+            print("3")
+
             gradient_penalty = lambda_gp*gradient_penalty
             d_loss = fake_disc_loss + \
                      - real_disc_loss+ \
-                     gradient_penalty
+                    gradient_penalty
+            # d_loss = torch.mean(discriminator(hr_real))+\
+            #          torch.mean(discriminator(hr_fake))+\
+            #         compute_gradient_penalty(discriminator, hr_real, hr_fake,device)
+            print("4")
 
             d_optimizer.zero_grad()
+            print("5")
             d_loss.backward()
+            print("6")
+
             d_optimizer.step()
+
+            print("7")
+
             mean_d_loss += d_loss.item() / display_step
 
             # hr_fake = generator(lr_real)
@@ -233,8 +246,8 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
 
             experiment.log_metric("Generator Loss",mean_g_loss)
             experiment.log_metric("Discriminator Loss",mean_d_loss)
-            experiment.log_metric("Real Disc Loss Component",real_disc_loss)
-            experiment.log_metric("Fake Disc Loss Component",fake_disc_loss)
+            # experiment.log_metric("Real Disc Loss Component",real_disc_loss)
+            # experiment.log_metric("Fake Disc Loss Component",fake_disc_loss)
             experiment.log_metric("Gradient Penalty",gradient_penalty)
 
             # experiment.log_metric("VGG Loss",vgg_loss)
