@@ -152,9 +152,9 @@ class SR_HST_HSC_Dataset(Dataset):
                 hst_array = TF.rotate(hst_array,rotation,
                                     interpolation = TF.InterpolationMode.BILINEAR)
 
-                #Center Crop 
-                hsc_array = TF.center_crop(hsc_array,[100,100])
-                hst_array = TF.center_crop(hst_array,[600,600])
+            #Center Crop 
+            hsc_array = TF.center_crop(hsc_array,[100,100])
+            hst_array = TF.center_crop(hst_array,[600,600])
 
         ## Flip Augmentations
             if random.random() > 0.5:
