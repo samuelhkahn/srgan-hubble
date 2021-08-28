@@ -160,21 +160,31 @@ def compute_gradient_penalty(discriminator, real_samples, fake_samples,device):
     gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean().to(device)
     return gradient_penalty
 
-def train_srgan(generator, discriminator, dataloader, device,experiment, model_name,lr=1e-4, total_steps=2e5, display_step=100,lambda_gp=1):
+def train_srgan(generator,discriminator_bg,discriminator_obj, dataloader, device,experiment, model_name,lr=1e-4, total_steps=2e5, display_step=100,lambda_gp=1):
     generator = generator.to(device).train()
-    discriminator = discriminator.to(device).train()
+
+    discriminator_bg = discriminator_bg.to(device).train()
+    discriminator_obj = discriminator_obj.to(device).train()
+
     loss_fn = Loss(device=device)
 
     g_optimizer = torch.optim.Adam(generator.parameters(), lr=lr)
-    d_optimizer = torch.optim.Adam(discriminator.parameters(), lr=lr)
+
+    d_bg_optimizer = torch.optim.Adam(discriminator_bg.parameters(), lr=lr)
+    d_obj_optimizer = torch.optim.Adam(discriminator_obj.parameters(), lr=lr)
+
     g_scheduler = torch.optim.lr_scheduler.LambdaLR(g_optimizer, lambda _: 0.1)
-    d_scheduler = torch.optim.lr_scheduler.LambdaLR(d_optimizer, lambda _: 0.1)
+
+    d_bg_scheduler = torch.optim.lr_scheduler.LambdaLR(d_bg_optimizer, lambda _: 0.1)
+    d_obj_scheduler = torch.optim.lr_scheduler.LambdaLR(d_obj_optimizer, lambda _: 0.1)
 
     lr_step = total_steps // 2
     cur_step = 0
 
     mean_g_loss = 0.0
-    mean_d_loss = 0.0
+    mean_d_bg_loss = 0.0
+    mean_d_obj_loss = 0.0
+
     mean_vgg_loss = 0.0
 
     # # HST clip range - (0,99.996)
@@ -191,7 +201,6 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
             hr_real = hr_real.unsqueeze(1).to(device)
             lr_real = lr_real.unsqueeze(1).to(device)
             hr_segs = hr_segs.unsqueeze(1).to(device)
-
             # Enable autocast to FP16 tensors (new feature since torch==1.6.0)
             # If you're running older versions of torch, comment this out
             # and use NVIDIA apex for mixed/half precision training
@@ -204,38 +213,62 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
             #     g_loss, d_loss,vgg_loss, hr_fake = loss_fn(
             #         generator, discriminator, hr_real, lr_real, hr_segs
             #     )
-            hr_fake = generator(lr_real).detach()
-            gradient_penalty = compute_gradient_penalty(discriminator, hr_real, hr_fake,device)
 
-            real_disc_loss = torch.mean(discriminator(hr_real))
-            fake_disc_loss = torch.mean(discriminator(hr_fake))
+
+            hr_fake = generator(lr_real).detach()
+
+            ### Background Discrimintato
+            gradient_penalty = compute_gradient_penalty(discriminator_bg, hr_real, hr_fake,device)
+
+            real_disc_loss = torch.mean(discriminator_bg(hr_real))
+            fake_disc_loss = torch.mean(discriminator_bg(hr_fake))
             gradient_penalty = lambda_gp*gradient_penalty
-            d_loss = fake_disc_loss + \
+            d_bg_loss = fake_disc_loss + \
                      - real_disc_loss+ \
                      gradient_penalty
 
-            d_optimizer.zero_grad()
-            d_loss.backward()
-            d_optimizer.step()
-            mean_d_loss += d_loss.item() / display_step
+            d_bg_optimizer.zero_grad()
+            d_bg_loss.backward()
+            d_bg_optimizer.step()
+            mean_d_bg_loss += d_bg_loss.item() / display_step
+            experiment.log_metric("Real Disc Loss Component With Segmap", real_disc_loss)
+            experiment.log_metric("Fake Disc Loss Component With Segmap", fake_disc_loss)
+            
+            ### Object Discriminator w/ segmap ###
+            gradient_penalty = compute_gradient_penalty(discriminator_obj, hr_real, hr_fake,device)
+
+            ### Apply segmapps to critic
+            real_disc_loss = torch.mean(discriminator_obj(hr_real*hr_segs))
+            fake_disc_loss = torch.mean(discriminator_obj(hr_fake*hr_segs))
+            gradient_penalty = lambda_gp*gradient_penalty
+            d_obj_loss = fake_disc_loss+ \
+                       -real_disc_loss+ \
+                     gradient_penalty
+
+            d_obj_optimizer.zero_grad()
+            d_obj_loss.backward()
+            d_obj_optimizer.step()
+            mean_d_obj_loss += d_obj_loss.item() / display_step
 
             # hr_fake = generator(lr_real)
             # Adversarial loss
             
-            if display_step %5 ==0 and display_step!=0:
-                g_loss = -torch.mean(discriminator(hr_fake))
-                g_optimizer.zero_grad()
-                g_loss.backward()
-                g_optimizer.step()
-                mean_g_loss += g_loss.item() / display_step
+            # if display_step %5 ==0 and display_step!=0:
+            g_loss = -torch.mean(discriminator_bg(hr_fake))\
+                     -torch.mean(discriminator_obj(hr_fake*hr_segs))
+            g_optimizer.zero_grad()
+            g_loss.backward()
+            g_optimizer.step()
+            mean_g_loss += g_loss.item() / display_step
             # mean_vgg_loss += vgg_loss.item() / display_step
 
 
             experiment.log_metric("Generator Loss",mean_g_loss)
-            experiment.log_metric("Discriminator Loss",mean_d_loss)
-            experiment.log_metric("Real Disc Loss Component",real_disc_loss)
-            experiment.log_metric("Fake Disc Loss Component",fake_disc_loss)
-            experiment.log_metric("Gradient Penalty",gradient_penalty)
+            experiment.log_metric("Discriminator Background Loss", mean_d_bg_loss)
+            experiment.log_metric("Discriminator Object Loss ", mean_d_obj_loss)
+            experiment.log_metric("Real Disc Loss Component With Segmap", real_disc_loss)
+            experiment.log_metric("Fake Disc Loss Component With Segmap", fake_disc_loss)
+            experiment.log_metric("Gradient Penalty", gradient_penalty)
 
             # experiment.log_metric("VGG Loss",vgg_loss)
 
@@ -247,7 +280,8 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
 
             if cur_step%50000==0:
                 torch.save(generator, f'srgenerator_{model_name}_checkpoint_{cur_step}.pt')
-                torch.save(discriminator, f'srdiscriminator_{model_name}_checkpoint_{cur_step}.pt')
+                torch.save(discriminator_bg, f'srdiscriminator_bg_{model_name}_checkpoint_{cur_step}.pt')
+                torch.save(discriminator_obj, f'srdiscriminator_obj_{model_name}_checkpoint_{cur_step}.pt')
 
 
             if cur_step % display_step == 0 and cur_step > 0:
@@ -261,6 +295,7 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
                 lr_image = lr_real[0,:,:,:].cpu()
                 sr_image = hr_fake[0,:,:,:].cpu()
                 hr_image = hr_real[0,:,:,:].cpu()  
+                seg_image = hr_segs[0,:,:,:].cpu()
 
                 # lr_image = invert_min_max_normalization(lr_image,hsc_min,hsc_max)
                 # sr_image = invert_min_max_normalization(sr_image,hst_min,hst_max)               
@@ -269,8 +304,9 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
                 experiment.log_image(lr_image,"Low Resolution")
                 experiment.log_image(sr_image,"Super Resolution")
                 experiment.log_image(hr_image,"High Resolution")
-                img_diff = (sr_image - hr_image).cpu()
+                experiment.log_image(seg_image,"Segmentation Map")#,image_minmax=(0,1),cmap='gray')
 
+                img_diff = (sr_image - hr_image).cpu()
                 experiment.log_image(img_diff,"Image Difference")
 
             mean_g_loss = 0.0
@@ -282,4 +318,4 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
             if cur_step == total_steps:
                 break
 
-    return generator,discriminator
+    return generator,discriminator_bg,discriminator_obj
