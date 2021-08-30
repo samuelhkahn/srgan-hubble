@@ -205,49 +205,42 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
             #     )
             hr_fake = generator(lr_real).detach()
             gradient_penalty = compute_gradient_penalty(discriminator, hr_real, hr_fake,device)
-            print("1")
+
             real_disc_loss = torch.mean(discriminator(hr_real))
-            print("2")
-
             fake_disc_loss = torch.mean(discriminator(hr_fake))
-            print("3")
-
             gradient_penalty = lambda_gp*gradient_penalty
+
             d_loss = fake_disc_loss + \
                      - real_disc_loss+ \
                     gradient_penalty
             # d_loss = torch.mean(discriminator(hr_real))+\
             #          torch.mean(discriminator(hr_fake))+\
             #         compute_gradient_penalty(discriminator, hr_real, hr_fake,device)
-            print("4")
 
             d_optimizer.zero_grad()
-            print("5")
             d_loss.backward()
-            print("6")
 
             d_optimizer.step()
 
-            print("7")
 
             mean_d_loss += d_loss.item() / display_step
 
             # hr_fake = generator(lr_real)
             # Adversarial loss
             
-            if display_step %5 ==0 and display_step!=0:
-                g_loss = -torch.mean(discriminator(hr_fake))
-                g_optimizer.zero_grad()
-                g_loss.backward()
-                g_optimizer.step()
-                mean_g_loss += g_loss.item() / display_step
+            # if display_step %5 ==0 and display_step!=0:
+            g_loss = -torch.mean(discriminator(hr_fake)) + Loss.img_loss_with_mask(hr_real,hr_fake,hr_segs)
+            g_optimizer.zero_grad()
+            g_loss.backward()
+            g_optimizer.step()
+            mean_g_loss += g_loss.item() / display_step
             # mean_vgg_loss += vgg_loss.item() / display_step
 
 
             experiment.log_metric("Generator Loss",mean_g_loss)
             experiment.log_metric("Discriminator Loss",mean_d_loss)
-            # experiment.log_metric("Real Disc Loss Component",real_disc_loss)
-            # experiment.log_metric("Fake Disc Loss Component",fake_disc_loss)
+            experiment.log_metric("Real Disc Loss Component",real_disc_loss)
+            experiment.log_metric("Fake Disc Loss Component",fake_disc_loss)
             experiment.log_metric("Gradient Penalty",gradient_penalty)
 
             # experiment.log_metric("VGG Loss",vgg_loss)

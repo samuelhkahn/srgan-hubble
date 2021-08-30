@@ -16,23 +16,23 @@ class Discriminator(nn.Module):
         super().__init__()
         self.blocks = [
             nn.Conv2d(num_input_channels, base_channels, kernel_size=3, padding=1),
-            #nn.LeakyReLU(0.2, inplace=False),
+            nn.LeakyReLU(0.2, inplace=False),
 
             nn.Conv2d(base_channels, base_channels, kernel_size=3, padding=1, stride=2),
             #nn.BatchNorm2d(base_channels),
-            #nn.LeakyReLU(0.2, inplace=False),
+            nn.LeakyReLU(0.2, inplace=False),
         ]
 
         cur_channels = base_channels
         for i in range(n_blocks):
             self.blocks.extend([
-                spectral_norm(nn.Conv2d(cur_channels, 2 * cur_channels, kernel_size=3, padding=1)),
+                nn.Conv2d(cur_channels, 2 * cur_channels, kernel_size=3, padding=1),
                # nn.BatchNorm2d(2 * cur_channels),
-               # nn.LeakyReLU(0.2, inplace=False),
+               nn.LeakyReLU(0.2, inplace=False),
 
                 nn.Conv2d(2 * cur_channels, 2 * cur_channels, kernel_size=3, padding=1, stride=2),
                 #nn.BatchNorm2d(2 * cur_channels),
-               # nn.LeakyReLU(0.2, inplace=False),
+               nn.LeakyReLU(0.2, inplace=False),
             ])
         cur_channels = cur_channels*2
 

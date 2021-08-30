@@ -21,9 +21,6 @@ def collate_fn(batch):
 
 
 	for hr, lr,hr_seg in batch:
-		print(hr.shape)
-		print(lr.shape)
-		print(hr_seg.shape)
 		hr_nan = torch.isnan(hr).any()
 		lr_nan = torch.isnan(lr).any()
 		hr_inf = torch.isinf(hr).any()
@@ -83,9 +80,9 @@ def main():
 	# Define Generator
 	generator = Generator(n_res_blocks=16, n_ps_blocks=2,pix_shuffle=True)
 
-	#generator = train_srresnet(generator, dataloader, device, experiment,srresnet_model_name, lr=1e-4, total_steps=srresnet_steps, display_step=25)
+	generator = train_srresnet(generator, dataloader, device, experiment,srresnet_model_name, lr=1e-4, total_steps=srresnet_steps, display_step=25)
 
-	#torch.save(generator, f'srresnet_{srresnet_model_name}.pt')
+	torch.save(generator, f'srresnet_{srresnet_model_name}.pt')
 
 	generator = torch.load(f'srresnet_{srresnet_model_name}.pt')
 	discriminator = Discriminator(n_blocks=1, base_channels=8)
