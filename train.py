@@ -85,7 +85,7 @@ def main():
 							   device, 
 							   experiment,
 							   srresnet_model_name, 
-							   lr=1e-3, 
+							   lr=1e-4, 
 							   total_steps=srresnet_steps, 
 							   display_step=25)
 
