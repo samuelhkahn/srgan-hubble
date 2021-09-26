@@ -31,7 +31,7 @@ def invert_min_max_normalization(tensor:np.ndarray, min_val:float, max_val:float
     unnormalized=tensor*denominator+min_val
     return unnormalized
 
-def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4, total_steps=1e6, display_step=500, ):
+def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4, total_steps=1e6, display_step=500 ):
     srresnet = srresnet.to(device).train()
     optimizer = torch.optim.Adam(srresnet.parameters(), lr=lr)
 
@@ -48,42 +48,47 @@ def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4,
     hsc_min, hsc_max = (-0.4692089855670929, 12.432257350922441)
 
     while cur_step < total_steps:
-        for hr_real, lr_real, hr_segs in tqdm(dataloader, position=0):
+        for hst_lr,hst_hr,lr_real, seg_map_real in tqdm(dataloader, position=0):
             # Conv2d expects (n_samples, channels, height, width)
             # So add the channel dimension
-            hr_real = hr_real.unsqueeze(1).to(device)
+            hst_lr = hst_lr.to(device)
+            hst_hr = hst_hr.to(device)
+
+
             lr_real = lr_real.unsqueeze(1).to(device)
-            hr_segs = hr_segs.unsqueeze(1).to(device)
+            seg_map_real = seg_map_real.to(device)
+
+
+            # print("HST LR:",hst_lr.shape)
+            # print("HST HR:",hst_hr.shape)
+            # print("HSC LR:",lr_real.shape)
+            # print("Seg Map:",seg_map_real.shape)
             # Enable autocast to FP16 tensors (new feature since torch==1.6.0)
             # If you're running older versions of torch, comment this out
             # and use NVIDIA apex for mixed/half precision training
             if has_autocast:
                 with torch.cuda.amp.autocast(enabled=(device=='cuda')):
+                    # hr_fake = batch, channels, height, width
                     hr_fake = srresnet(lr_real)
-                    mse_loss = Loss.l1_loss(hr_real, hr_fake)
-                    mse_loss_mask = Loss.l1_loss_with_mask(hr_real, hr_fake,hr_segs)
-                    # ssim_loss = Loss.ssim_loss_with_mask(hr_real, hr_fake,hr_segs)
-                    # emd_loss = Loss.emd(hr_real, hr_fake,hr_segs)
-                    # print(emd_loss)
+                    # print("SR:",hr_fake.shape)
 
-                    # emd_loss = torch.mean(emd_loss)
+                    mse_loss_hr = Loss.img_loss(hst_lr, hr_fake[:,0,:,:])
+                    mse_loss_lr = Loss.img_loss(hst_hr, hr_fake[:,1,:,:])
+
+                    mse_loss_mask_hr = Loss.img_loss_with_mask(hst_lr, hr_fake[:,0,:,:],seg_map_real)
+                    mse_loss_mask_lr = Loss.img_loss_with_mask(hst_hr, hr_fake[:,1,:,:],seg_map_real)
 
             else:
-
                 hr_fake = srresnet(lr_real)
-                mse_loss = Loss.l1_loss(hr_real, hr_fake)
-                mse_loss_mask = Loss.l1_loss_with_mask(hr_real, hr_fake,hr_segs)
-            # ssim_loss = Loss.ssim_loss_with_mask(hr_real, hr_fake,hr_segs)
-            # emd_loss = Loss.emd(hr_real, hr_fake,hr_segs)
-            # print(emd_loss)
 
-            # emd_loss = torch.mean(emd_loss)
+                mse_loss_hr = Loss.l1_loss(hst_lr, hr_fake[:,0,:,:].squeeze(0))
+                mse_loss_lr = Loss.l1_loss(hst_hr, hr_fake[:,1,:,:].squeeze(0))
 
-            # loss=0.001*mse_loss+0.001*mse_loss_mask+ssim_loss
-            loss = mse_loss+ mse_loss_mask
-            # print(mse_loss)
-            # print(mse_loss_mask)
-            # print(ssim_loss)
+                mse_loss_mask_hr = Loss.img_loss_with_mask(hst_lr, hr_fake[:,0,:,:],seg_map_real)
+                mse_loss_mask_lr = Loss.img_loss_with_mask(hst_hr, hr_fake[:,1,:,:],seg_map_real)
+
+            loss = mse_loss_mask_hr + mse_loss_mask_lr + mse_loss_lr
+
             optimizer.zero_grad()
             loss.backward()
             clip_grad_norm_(srresnet.parameters(), 1.0)
@@ -103,21 +108,31 @@ def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4,
                 # hr_image = invert_min_max_normalization(hr_real[0,:,:,:].cpu(),hst_min,hst_max)
 
                 lr_image = lr_real[0,:,:,:].cpu()
-                sr_image = hr_fake[0,:,:,:].cpu()
-                hr_image = hr_real[0,:,:,:].cpu()  
-                seg_image = hr_segs[0,:,:,:].cpu()
-                # lr_image = invert_min_max_normalization(lr_image,hsc_min,hsc_max)
-                # sr_image = invert_min_max_normalization(sr_image,hst_min,hst_max)               
-                # hr_image = invert_min_max_normalization(hr_image,hst_min,hst_max)
+
+                sr_image_lr = hr_fake[0,0,:,:].cpu()
+                sr_image_hr = hr_fake[0,1,:,:].cpu()
+
+                hst_lr_image = hst_lr[0,:,:].cpu()
+                hst_hr_image = hst_hr[0,:,:].cpu()  
+
+                seg_image = seg_map_real[0,:,:].cpu()
+
+
          
                 experiment.log_image(lr_image,"Low Resolution")
-                experiment.log_image(sr_image,"Super Resolution")
-                experiment.log_image(seg_image,"Segmentation Map")#,image_minmax=(0,1),cmap='gray')
-                experiment.log_image(hr_image,"High Resolution")#,image_minmax=(0,1),cmap='gray')
+                experiment.log_image(sr_image_hr,"Super Resolution - HR")
+                experiment.log_image(sr_image_lr,"Super Resolution - LR")
+                experiment.log_image(hst_lr_image,"High Resolution - HR")
+                experiment.log_image(hst_hr_image,"High Resolution - LR")
+                # experiment.log_image(seg_image,"Segmentation Map")#,image_minmax=(0,1),cmap='gray')
+                # experiment.log_image(hr_image,"High Resolution")#,image_minmax=(0,1),cmap='gray')
 
-                img_diff = (sr_image - hr_image).cpu()
+                img_diff_lr = (sr_image_lr - hst_lr_image).cpu()
+                img_diff_hr = (sr_image_hr - hst_hr_image).cpu()
 
-                experiment.log_image(img_diff,"Image Difference")
+                experiment.log_image(img_diff_lr,"Image Difference - LR")
+                experiment.log_image(img_diff_hr,"Image Difference - HR")
+
 
                 mean_loss = 0.0
             # show_tensor_images(lr_real * 2 - 1)

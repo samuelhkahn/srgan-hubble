@@ -10,6 +10,14 @@ import random
 import torchvision.transforms.functional as TF
 import sep
 from torchvision.transforms import CenterCrop
+import numpy as np
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+from astropy.visualization import simple_norm
+from mpl_toolkits.axes_grid1 import make_axes_locatable 
+from skimage.filters import gaussian
+from sklearn.preprocessing import minmax_scale
+
 class SR_HST_HSC_Dataset(Dataset):
     '''
     Dataset Class
@@ -123,6 +131,17 @@ class SR_HST_HSC_Dataset(Dataset):
             mask[mask>0]=1
             return  mask
 
+    @staticmethod
+    def create_hr_lr_pair(tensor:np.ndarray,alpha:float) -> np.ndarray:
+        img_low = minmax_scale(gaussian(tensor, sigma=5).flatten(), 
+            feature_range=(tensor.min(), tensor.max()),).reshape(tensor.shape)
+        img_high = tensor - img_low
+        alpha = np.max(np.abs(img_high)) 
+        img_high = img_high / alpha
+        return img_low,img_high
+
+
+
     def __len__(self) -> int:
         return len(self.filenames)
     
@@ -172,6 +191,7 @@ class SR_HST_HSC_Dataset(Dataset):
         hsc_array = np.array(hsc_array)
         hst_array = np.array(hst_array)
         hst_seg_map = self.get_segmentation_map(hst_array)
+        
 
         # scale LR image with median scale factor
         #hsc_array = self.scale_tensor(hsc_array,self.median_scale)
@@ -202,9 +222,17 @@ class SR_HST_HSC_Dataset(Dataset):
 
 
         # Collapse First Dimension and extract hst/seg_map
-        hst_tensor = self.to_tensor(hst_transformation).squeeze(0)
+        
         hst_seg_map = self.to_tensor(hst_seg_map).squeeze(0)
         hsc_tensor = self.to_tensor(hsc_transformation).squeeze(0)
 
+        hst_lr,hst_hr = self.create_hr_lr_pair(hst_transformation,0.6)
 
-        return hst_tensor,hsc_tensor,hst_seg_map
+        hst_lr = self.to_tensor(hst_lr).squeeze(0)
+        hst_hr = self.to_tensor(hst_hr).squeeze(0)
+        
+        hst_tensor = self.to_tensor(hst_transformation).squeeze(0)
+
+
+
+        return  hst_lr,hst_hr,hsc_tensor,hst_seg_map

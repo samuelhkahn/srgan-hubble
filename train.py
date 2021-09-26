@@ -17,23 +17,36 @@ hsc_dim = int(config["HSC_DIM"]["hsc_dim"])
 
 
 def collate_fn(batch):
-	hrs, lrs, hr_segs = [], [], []
+	hst_lrs,hst_hrs,lrs, hr_segs = [], [], [], []
 
 
-	for hr, lr,hr_seg in batch:
-		hr_nan = torch.isnan(hr).any()
+	for hst_lr,hst_hr,lr, hr_seg in batch:
+		hst_lr_nan = torch.isnan(hst_lr).any()
+		hst_hr_nan = torch.isnan(hst_hr).any()
 		lr_nan = torch.isnan(lr).any()
-		hr_inf = torch.isinf(hr).any()
+
+		hst_lr_inf = torch.isnan(hst_lr).any()
+		hst_hr_inf = torch.isnan(hst_hr).any()
 		lr_inf = torch.isinf(lr).any()
-		good_vals = [hr_nan,lr_nan,hr_inf,lr_inf]
-		if hr.shape == (hst_dim,hst_dim) and lr.shape == (hsc_dim,hsc_dim) and True not in good_vals:
-			hrs.append(hr)
+
+
+		good_vals = [hst_lr_nan,hst_hr_nan,hst_lr_inf,hst_hr_inf,lr_nan,lr_inf]
+
+		if hst_hr.shape == (hst_dim,hst_dim) \
+		and hst_lr.shape == (hst_dim,hst_dim) \
+		and lr.shape == (hsc_dim,hsc_dim) \
+		and True not in good_vals:
+			hst_lrs.append(hst_lr)
+			hst_hrs.append(hst_hr)
 			lrs.append(lr)
 			hr_segs.append(hr_seg)
-	hrs = torch.stack(hrs, dim=0)
+
+	hst_lrs = torch.stack(hst_lrs, dim=0)
+	hst_hrs = torch.stack(hst_hrs, dim=0)
 	lrs = torch.stack(lrs, dim=0)
 	hr_segs = torch.stack(hr_segs, dim=0)
-	return hrs, lrs, hr_segs
+
+	return hst_lrs,hst_hrs,lrs, hr_segs
 
 
 def main():
@@ -80,17 +93,17 @@ def main():
 	# Define Generator
 	generator = Generator(n_res_blocks=16, n_ps_blocks=2,pix_shuffle=True)
 
-	generator = train_srresnet(generator, dataloader, device, experiment,srresnet_model_name, lr=1e-4, total_steps=srresnet_steps, display_step=25)
+	generator = train_srresnet(generator, dataloader, device, experiment,srresnet_model_name, lr=1e-4, total_steps=srresnet_steps, display_step=2)
 
 	torch.save(generator, f'srresnet_{srresnet_model_name}.pt')
 
 	generator = torch.load(f'srresnet_{srresnet_model_name}.pt')
 	discriminator = Discriminator(n_blocks=1, base_channels=8)
 
-	generator,discriminator = train_srgan(generator, discriminator, dataloader, device, experiment,gan_model_name, lr=1e-2, total_steps=gan_steps, display_step=25,lambda_gp=10)
+	# generator,discriminator = train_srgan(generator, discriminator, dataloader, device, experiment,gan_model_name, lr=1e-2, total_steps=gan_steps, display_step=25,lambda_gp=10)
 	
-	torch.save(generator, f'srgenerator_{gan_model_name}.pt')
-	torch.save(discriminator, f'srdiscriminator_{gan_model_name}.pt')
+	# torch.save(generator, f'srgenerator_{gan_model_name}.pt')
+	# torch.save(discriminator, f'srdiscriminator_{gan_model_name}.pt')
 
 
 if __name__=="__main__":
