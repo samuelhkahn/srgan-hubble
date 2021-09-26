@@ -69,23 +69,24 @@ def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4,
             if has_autocast:
                 with torch.cuda.amp.autocast(enabled=(device=='cuda')):
                     # hr_fake = batch, channels, height, width
+
                     hr_fake = srresnet(lr_real)
-                    # print("SR:",hr_fake.shape)
 
-                    mse_loss_hr = Loss.img_loss(hst_lr, hr_fake[:,0,:,:])
-                    mse_loss_lr = Loss.img_loss(hst_hr, hr_fake[:,1,:,:])
+                    ## Force Inductive Channel Bias -> 1=HST_HR, Channel 2=HST_LR
+                    mse_loss_hr = Loss.img_loss(hst_hr, hr_fake[:,0,:,:])
+                    mse_loss_lr = Loss.img_loss(hst_lr, hr_fake[:,1,:,:])
 
-                    mse_loss_mask_hr = Loss.img_loss_with_mask(hst_lr, hr_fake[:,0,:,:],seg_map_real)
-                    mse_loss_mask_lr = Loss.img_loss_with_mask(hst_hr, hr_fake[:,1,:,:],seg_map_real)
+                    mse_loss_mask_hr = Loss.img_loss_with_mask(hst_hr, hr_fake[:,0,:,:],seg_map_real)
+                    mse_loss_mask_lr = Loss.img_loss_with_mask(hst_lr, hr_fake[:,1,:,:],seg_map_real)
 
             else:
                 hr_fake = srresnet(lr_real)
 
-                mse_loss_hr = Loss.l1_loss(hst_lr, hr_fake[:,0,:,:].squeeze(0))
-                mse_loss_lr = Loss.l1_loss(hst_hr, hr_fake[:,1,:,:].squeeze(0))
+                mse_loss_hr = Loss.img_loss(hst_hr, hr_fake[:,0,:,:])
+                mse_loss_lr = Loss.img_loss(hst_lr, hr_fake[:,1,:,:])
 
-                mse_loss_mask_hr = Loss.img_loss_with_mask(hst_lr, hr_fake[:,0,:,:],seg_map_real)
-                mse_loss_mask_lr = Loss.img_loss_with_mask(hst_hr, hr_fake[:,1,:,:],seg_map_real)
+                mse_loss_mask_hr = Loss.img_loss_with_mask(hst_hr, hr_fake[:,0,:,:],seg_map_real)
+                mse_loss_mask_lr = Loss.img_loss_with_mask(hst_lr, hr_fake[:,1,:,:],seg_map_real)
 
             loss = mse_loss_mask_hr + mse_loss_mask_lr + mse_loss_lr
 
@@ -109,8 +110,8 @@ def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4,
 
                 lr_image = lr_real[0,:,:,:].cpu()
 
-                sr_image_lr = hr_fake[0,0,:,:].cpu()
-                sr_image_hr = hr_fake[0,1,:,:].cpu()
+                sr_image_hr = hr_fake[0,0,:,:].cpu()
+                sr_image_lr = hr_fake[0,1,:,:].cpu()
 
                 hst_lr_image = hst_lr[0,:,:].cpu()
                 hst_hr_image = hst_hr[0,:,:].cpu()  
@@ -127,11 +128,11 @@ def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4,
                 # experiment.log_image(seg_image,"Segmentation Map")#,image_minmax=(0,1),cmap='gray')
                 # experiment.log_image(hr_image,"High Resolution")#,image_minmax=(0,1),cmap='gray')
 
-                img_diff_lr = (sr_image_lr - hst_lr_image).cpu()
-                img_diff_hr = (sr_image_hr - hst_hr_image).cpu()
+                # img_diff_lr = (sr_image_lr - hst_lr_image).cpu()
+                # img_diff_hr = (sr_image_hr - hst_hr_image).cpu()
 
-                experiment.log_image(img_diff_lr,"Image Difference - LR")
-                experiment.log_image(img_diff_hr,"Image Difference - HR")
+                # experiment.log_image(img_diff_lr,"Image Difference - LR")
+                # experiment.log_image(img_diff_hr,"Image Difference - HR")
 
 
                 mean_loss = 0.0
