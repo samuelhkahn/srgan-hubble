@@ -3,7 +3,7 @@ from torchvision.utils import make_grid
 import matplotlib.pyplot as plt
 from srresnet_loss import Loss
 import torch
-from torch.nn.utils import clip_grad_norm_
+from torch.nn.utils import clip_grad_norm_,clip_grad_value_
 from torch.autograd import Variable
 from torch import autograd
 import numpy as np
@@ -92,7 +92,7 @@ def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4,
 
             optimizer.zero_grad()
             loss.backward()
-            clip_grad_norm_(srresnet.parameters(), 1.0)
+            clip_grad_value_(srresnet.parameters(), 10000)
             optimizer.step()
             scheduler.step()
 
