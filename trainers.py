@@ -122,8 +122,8 @@ def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4,
                 experiment.log_image(lr_image,"Low Resolution")
                 experiment.log_image(sr_image_hr,"Super Resolution - HR")
                 experiment.log_image(sr_image_lr,"Super Resolution - LR")
-                experiment.log_image(hst_lr_image,"High Resolution - HR")
-                experiment.log_image(hst_hr_image,"High Resolution - LR")
+                experiment.log_image(hst_hr_image,"High Resolution - HR")
+                experiment.log_image(hst_lr_image,"High Resolution - LR")
                 # experiment.log_image(seg_image,"Segmentation Map")#,image_minmax=(0,1),cmap='gray')
                 # experiment.log_image(hr_image,"High Resolution")#,image_minmax=(0,1),cmap='gray')
 
