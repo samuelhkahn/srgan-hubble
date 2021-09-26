@@ -143,6 +143,7 @@ def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4,
             experiment.log_metric("SRResNet MSE MASKED HR Loss",mse_loss_mask_hr.item()/display_step)
             experiment.log_metric("SRResNet MSE MASKED LR Loss",mse_loss_mask_lr.item()/display_step)
             experiment.log_metric("SRResNet MSE LR Loss",mse_loss_lr.item()/display_step)
+            experiment.log_metric("SRResNet MSE MASKED HR/LR LossRatio ",mse_loss_mask_hr.item()/mse_loss_mask_lr.item())
 
             experiment.log_metric("SRResNet Total MSE Loss",mean_loss)
             experiment.log_metric("Learning Rate",optimizer.param_groups[0]['lr'])
