@@ -36,7 +36,7 @@ def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4,
     optimizer = torch.optim.Adam(srresnet.parameters(), lr=lr)
 
     # every 5000th step decrease the learning rate
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10000, gamma=0.1) 
+    # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10000, gamma=0.1) 
 
     cur_step = 0
     mean_loss = 0.0
@@ -71,30 +71,24 @@ def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4,
                     # hr_fake = batch, channels, height, width
 
                     hr_fake = srresnet(lr_real)
-
-                    ## Force Inductive Channel Bias -> 1=HST_HR, Channel 2=HST_LR
+                    print(hr_fake.shape)
                     mse_loss_hr = Loss.img_loss(hst_hr, hr_fake[:,0,:,:])
-                    mse_loss_lr = Loss.img_loss(hst_lr, hr_fake[:,1,:,:])
 
                     mse_loss_mask_hr = Loss.img_loss_with_mask(hst_hr, hr_fake[:,0,:,:],seg_map_real)
-                    mse_loss_mask_lr = Loss.img_loss_with_mask(hst_lr, hr_fake[:,1,:,:],seg_map_real)
-
             else:
                 hr_fake = srresnet(lr_real)
 
                 mse_loss_hr = Loss.img_loss(hst_hr, hr_fake[:,0,:,:])
-                mse_loss_lr = Loss.img_loss(hst_lr, hr_fake[:,1,:,:])
 
                 mse_loss_mask_hr = Loss.img_loss_with_mask(hst_hr, hr_fake[:,0,:,:],seg_map_real)
-                mse_loss_mask_lr = Loss.img_loss_with_mask(hst_lr, hr_fake[:,1,:,:],seg_map_real)
 
-            loss = mse_loss_mask_hr + mse_loss_mask_lr + mse_loss_lr
+            loss = mse_loss_mask_hr + mse_loss_mask_hr
 
             optimizer.zero_grad()
             loss.backward()
             clip_grad_value_(srresnet.parameters(), 10000)
             optimizer.step()
-            scheduler.step()
+            # scheduler.step()
 
             mean_loss += loss.item() / display_step
 
@@ -104,16 +98,10 @@ def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4,
 
             if cur_step % display_step == 0 and cur_step > 0:
                 print('Step {}: SRResNet loss: {:.5f}'.format(cur_step, mean_loss))
-                # lr_image = invert_min_max_normalization(lr_real[0,:,:,:].cpu(),hsc_min,hsc_max)
-                # sr_image = invert_min_max_normalization(hr_fake[0,:,:,:].cpu(),hst_min,hst_max)
-                # hr_image = invert_min_max_normalization(hr_real[0,:,:,:].cpu(),hst_min,hst_max)
-
+               
                 lr_image = lr_real[0,:,:,:].cpu()
 
                 sr_image_hr = hr_fake[0,0,:,:].cpu()
-                sr_image_lr = hr_fake[0,1,:,:].cpu()
-
-                hst_lr_image = hst_lr[0,:,:].cpu()
                 hst_hr_image = hst_hr[0,:,:].cpu()  
 
                 seg_image = seg_map_real[0,:,:].cpu()
@@ -122,28 +110,15 @@ def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4,
          
                 experiment.log_image(lr_image,"Low Resolution")
                 experiment.log_image(sr_image_hr,"Super Resolution - HR")
-                experiment.log_image(sr_image_lr,"Super Resolution - LR")
+                # experiment.log_image(sr_image_lr,"Super Resolution - LR")
                 experiment.log_image(hst_hr_image,"High Resolution - HR")
-                experiment.log_image(hst_lr_image,"High Resolution - LR")
-                # experiment.log_image(seg_image,"Segmentation Map")#,image_minmax=(0,1),cmap='gray')
-                # experiment.log_image(hr_image,"High Resolution")#,image_minmax=(0,1),cmap='gray')
-
-                # img_diff_lr = (sr_image_lr - hst_lr_image).cpu()
-                # img_diff_hr = (sr_image_hr - hst_hr_image).cpu()
-
-                # experiment.log_image(img_diff_lr,"Image Difference - LR")
-                # experiment.log_image(img_diff_hr,"Image Difference - HR")
-
+ 
 
                 mean_loss = 0.0
-            # show_tensor_images(lr_real * 2 - 1)
-            # show_tensor_images(hr_fake.to(hr_real.dtype))
-            # show_tensor_images(hr_real)
+
 
             experiment.log_metric("SRResNet MSE MASKED HR Loss",mse_loss_mask_hr.item()/display_step)
-            experiment.log_metric("SRResNet MSE MASKED LR Loss",mse_loss_mask_lr.item()/display_step)
-            experiment.log_metric("SRResNet MSE LR Loss",mse_loss_lr.item()/display_step)
-            experiment.log_metric("SRResNet MSE MASKED HR/LR LossRatio ",mse_loss_mask_hr.item()/mse_loss_mask_lr.item())
+          
 
             experiment.log_metric("SRResNet Total MSE Loss",mean_loss)
             experiment.log_metric("Learning Rate",optimizer.param_groups[0]['lr'])
@@ -187,6 +162,7 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
 
     g_optimizer = torch.optim.Adam(generator.parameters(), lr=lr)
     d_optimizer = torch.optim.Adam(discriminator.parameters(), lr=lr)
+
     g_scheduler = torch.optim.lr_scheduler.LambdaLR(g_optimizer, lambda _: 0.1)
     d_scheduler = torch.optim.lr_scheduler.LambdaLR(d_optimizer, lambda _: 0.1)
 
@@ -204,14 +180,12 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
     hsc_min, hsc_max = (-0.4692089855670929, 12.432257350922441)
 
     while cur_step < total_steps:
-        for hr_real, lr_real, hr_segs in tqdm(dataloader, position=0):
-            hr_real = hr_real.to(device)
-            lr_real = lr_real.to(device)
-            
-            hr_real = hr_real.unsqueeze(1).to(device)
-            lr_real = lr_real.unsqueeze(1).to(device)
-            hr_segs = hr_segs.unsqueeze(1).to(device)
+        for hst_lr,hst_hr,lr_real, seg_map_real in tqdm(dataloader, position=0):
 
+
+            lr_real = lr_real.unsqueeze(1).to(device)
+            hst_lr = hst_lr.unsqueeze(1).to(device)
+            hst_hr = hst_hr.unsqueeze(1).to(device)
             # Enable autocast to FP16 tensors (new feature since torch==1.6.0)
             # If you're running older versions of torch, comment this out
             # and use NVIDIA apex for mixed/half precision training
@@ -225,9 +199,9 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
             #         generator, discriminator, hr_real, lr_real, hr_segs
             #     )
             hr_fake = generator(lr_real).detach()
-            gradient_penalty = compute_gradient_penalty(discriminator, hr_real, hr_fake,device)
+            gradient_penalty = compute_gradient_penalty(discriminator, hst_hr, hr_fake,device)
 
-            real_disc_loss = torch.mean(discriminator(hr_real))
+            real_disc_loss = torch.mean(discriminator(hst_hr))
             fake_disc_loss = torch.mean(discriminator(hr_fake))
             gradient_penalty = lambda_gp*gradient_penalty
             d_loss = fake_disc_loss + \
@@ -272,19 +246,12 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
 
             if cur_step % display_step == 0 and cur_step > 0:
                 print('Step {}: Generator loss: {:.5f}, Discriminator loss: {:.5f}'.format(cur_step, mean_g_loss, mean_d_loss))
-#                print('Step {}: SRResNet loss: {:.5f}'.format(cur_step, mean_loss))
-                # lr_image = invert_min_max_normalization(lr_real[0,:,:,:].cpu(),hsc_min,hsc_max)
-                # sr_image = invert_min_max_normalization(hr_fake[0,:,:,:].cpu(),hst_min,hst_max)
-                # hr_image = invert_min_max_normalization(hr_real[0,:,:,:].cpu(),hst_min,hst_max)
 
 
                 lr_image = lr_real[0,:,:,:].cpu()
                 sr_image = hr_fake[0,:,:,:].cpu()
-                hr_image = hr_real[0,:,:,:].cpu()  
+                hr_image = hst_hr[0,:,:,:].cpu()  
 
-                # lr_image = invert_min_max_normalization(lr_image,hsc_min,hsc_max)
-                # sr_image = invert_min_max_normalization(sr_image,hst_min,hst_max)               
-                # hr_image = invert_min_max_normalization(hr_image,hst_min,hst_max)
 
                 experiment.log_image(lr_image,"Low Resolution")
                 experiment.log_image(sr_image,"Super Resolution")
