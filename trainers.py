@@ -102,7 +102,7 @@ def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4,
                
                 lr_image = lr_real[0,:,:,:].squeeze(0).cpu()
 
-                sr_image_hr = hr_fake[0,0,:,:].cpu()
+                sr_image_hr = hr_fake[0,0,:,:].double().cpu()
                 hst_hr_image = hst_hr[0,:,:].cpu()  
 
                 seg_image = seg_map_real[0,:,:].cpu()
@@ -248,7 +248,7 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
 
 
                 lr_image = lr_real[0,:,:,:].squeeze(0).cpu()
-                sr_image_hr = hr_fake[0,0,:,:].cpu()
+                sr_image_hr = hr_fake[0,0,:,:].double().cpu()
                 hst_hr_image = hst_hr[0,:,:].squeeze(0).cpu()  
 
 
