@@ -7,6 +7,7 @@ from torch.nn.utils import clip_grad_norm_,clip_grad_value_
 from torch.autograd import Variable
 from torch import autograd
 import numpy as np
+from log_figure import log_figure
 # Parse torch version for autocast
 # ######################################################
 version = torch.__version__
@@ -99,7 +100,7 @@ def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4,
             if cur_step % display_step == 0 and cur_step > 0:
                 print('Step {}: SRResNet loss: {:.5f}'.format(cur_step, mean_loss))
                
-                lr_image = lr_real[0,:,:,:].cpu()
+                lr_image = lr_real[0,:,:,:].squeeze(0).cpu()
 
                 sr_image_hr = hr_fake[0,0,:,:].cpu()
                 hst_hr_image = hst_hr[0,:,:].cpu()  
@@ -107,11 +108,9 @@ def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4,
                 seg_image = seg_map_real[0,:,:].cpu()
 
 
-         
-                experiment.log_image(lr_image,"Low Resolution")
-                experiment.log_image(sr_image_hr,"Super Resolution - HR")
-                # experiment.log_image(sr_image_lr,"Super Resolution - LR")
-                experiment.log_image(hst_hr_image,"High Resolution - HR")
+                log_figure(sr_image_hr.detach().numpy(),"Super Resolution - HR",experiment)
+                log_figure(lr_image.detach().numpy(),"Low Resolution",experiment)
+                log_figure(hst_hr_image.detach().numpy(),"High Resolution - HR",experiment)
  
 
                 mean_loss = 0.0
@@ -248,17 +247,15 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
                 print('Step {}: Generator loss: {:.5f}, Discriminator loss: {:.5f}'.format(cur_step, mean_g_loss, mean_d_loss))
 
 
-                lr_image = lr_real[0,:,:,:].cpu()
-                sr_image = hr_fake[0,:,:,:].cpu()
-                hr_image = hst_hr[0,:,:,:].cpu()  
+                lr_image = lr_real[0,:,:,:].squeeze(0).cpu()
+                sr_image_hr = hr_fake[0,0,:,:].cpu()
+                hst_hr_image = hst_hr[0,:,:].squeeze(0).cpu()  
 
 
-                experiment.log_image(lr_image,"Low Resolution")
-                experiment.log_image(sr_image,"Super Resolution")
-                experiment.log_image(hr_image,"High Resolution")
-                img_diff = (sr_image - hr_image).cpu()
-
-                experiment.log_image(img_diff,"Image Difference")
+                log_figure(sr_image_hr.detach().numpy(),"Super Resolution - HR",experiment)
+                log_figure(lr_image.detach().numpy(),"Low Resolution",experiment)
+                log_figure(hst_hr_image.detach().numpy(),"High Resolution - HR",experiment)
+                # img_diff = (sr_image - hr_image).cpu()
 
             mean_g_loss = 0.0
             mean_d_loss = 0.0
