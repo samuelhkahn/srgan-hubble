@@ -8,10 +8,10 @@ def log_figure(img,fig_name,experiment):
 
 	im = ax.imshow(
 	    img, 
-	    cmap="Greys_r", # or whatever colormap you want
+	    cmap="plasma", # or whatever colormap you want
 	    origin="lower",
 	        #stretch can be also be {‘linear’, ‘sqrt’, ‘power’, log’, ‘asinh’}
-	    norm=simple_norm(img, stretch="log")
+	    norm=simple_norm(img, stretch="linear")
 	)
 
 	divider = make_axes_locatable(ax)

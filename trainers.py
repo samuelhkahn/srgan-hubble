@@ -83,7 +83,7 @@ def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4,
 
                 mse_loss_mask_hr = Loss.img_loss_with_mask(hst_hr, hr_fake[:,0,:,:],seg_map_real)
 
-            loss = mse_loss_mask_hr + mse_loss_mask_hr
+            loss = mse_loss_mask_hr + mse_loss_hr
 
             optimizer.zero_grad()
             loss.backward()
@@ -111,7 +111,8 @@ def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4,
                 log_figure(sr_image_hr.detach().numpy(),"Super Resolution - HR",experiment)
                 log_figure(lr_image.detach().numpy(),"Low Resolution",experiment)
                 log_figure(hst_hr_image.detach().numpy(),"High Resolution - HR",experiment)
- 
+                img_diff = (sr_image_hr - hst_hr_image).cpu()
+                log_figure(img_diff.detach().numpy(),"Super Resolution Difference",experiment)
 
                 mean_loss = 0.0
 
@@ -255,7 +256,9 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
                 log_figure(sr_image_hr.detach().numpy(),"Super Resolution - HR",experiment)
                 log_figure(lr_image.detach().numpy(),"Low Resolution",experiment)
                 log_figure(hst_hr_image.detach().numpy(),"High Resolution - HR",experiment)
-                # img_diff = (sr_image - hr_image).cpu()
+                img_diff = (sr_image_hr - hst_hr_image).cpu()
+                log_figure(img_diff.detach().numpy(),"Super Resolution Difference",experiment)
+
 
             mean_g_loss = 0.0
             mean_d_loss = 0.0
