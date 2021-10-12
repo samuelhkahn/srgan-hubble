@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from astropy.visualization import simple_norm
 
-def log_figure(img,fig_name,experiment):
+def log_figure(img,fig_name,experiment,cmap="plasma"):
 	f, ax = plt.subplots()
 
 

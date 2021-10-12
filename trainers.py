@@ -72,9 +72,7 @@ def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4,
                     # hr_fake = batch, channels, height, width
 
                     hr_fake = srresnet(lr_real)
-                    print(hr_fake.shape)
                     mse_loss_hr = Loss.img_loss(hst_hr, hr_fake[:,0,:,:])
-
                     mse_loss_mask_hr = Loss.img_loss_with_mask(hst_hr, hr_fake[:,0,:,:],seg_map_real)
             else:
                 hr_fake = srresnet(lr_real)
@@ -91,7 +89,6 @@ def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4,
             optimizer.step()
             # scheduler.step()
 
-            mean_loss += loss.item() / display_step
 
             # Log to Comet ML
 
@@ -112,15 +109,15 @@ def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4,
                 log_figure(lr_image.detach().numpy(),"Low Resolution",experiment)
                 log_figure(hst_hr_image.detach().numpy(),"High Resolution - HR",experiment)
                 img_diff = (sr_image_hr - hst_hr_image).cpu()
-                log_figure(img_diff.detach().numpy(),"Super Resolution Difference",experiment)
+                log_figure(img_diff.detach().numpy(),"Super Resolution Difference",experiment,cmap="bwr_r")
 
-                mean_loss = 0.0
+            mean_loss = loss.item() 
+            mean_mse_loss_mask_hr = mse_loss_mask_hr.item()
 
-
-            experiment.log_metric("SRResNet MSE MASKED HR Loss",mse_loss_mask_hr.item()/display_step)
-          
-
+            experiment.log_metric("SRResNet MSE MASKED HR Loss",mean_mse_loss_mask_hr)
             experiment.log_metric("SRResNet Total MSE Loss",mean_loss)
+            experiment.log_metric("SRResNet mask/total",mean_mse_loss_mask_hr/mean_loss)
+
             experiment.log_metric("Learning Rate",optimizer.param_groups[0]['lr'])
 
 
