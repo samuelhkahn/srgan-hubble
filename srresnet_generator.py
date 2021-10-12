@@ -51,7 +51,7 @@ class Generator(nn.Module):
                 ]
             self.ps_blocks = nn.Sequential(*ps_blocks)
         else:
-            self.ps_blocks = nn.Sequential(nn.Upsample(scale_factor = 6, mode='nearest'),
+            self.ps_blocks = nn.Sequential(nn.Upsample(scale_factor = 6, mode='bilinear'),
             nn.ReflectionPad2d(1),
             nn.Conv2d(base_channels,base_channels,kernel_size=3, stride=1, padding=0))
 	
@@ -65,8 +65,8 @@ class Generator(nn.Module):
         # Output layer
         self.out_layer = nn.Sequential(
             nn.Conv2d(base_channels, 1, kernel_size=9, padding=4,padding_mode=padding_mode),
-            # nn.Tanh(),
-	       nn.PReLU()
+            nn.Tanh()
+	       # nn.PReLU()
         )
 
     def forward(self, x):
