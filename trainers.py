@@ -111,7 +111,7 @@ def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4,
                 img_diff = (sr_image_hr - hst_hr_image).cpu()
                 log_figure(img_diff.detach().numpy(),"Super Resolution Difference",experiment,cmap="bwr_r")
 
-            mean_loss = loss.item() 
+            mean_loss = mse_loss_hr.item() 
             mean_mse_loss_mask_hr = mse_loss_mask_hr.item()
 
             experiment.log_metric("SRResNet MSE MASKED HR Loss",mean_mse_loss_mask_hr)
