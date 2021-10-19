@@ -71,6 +71,16 @@ def main():
 
 	hst_dim = int(config["HST_DIM"]["hst_dim"])
 	hsc_dim = int(config["HSC_DIM"]["hsc_dim"])
+	
+	srresnet_lr = float(config["SRRESNET_LR"]["srresnet_lr"])
+	gan_lr = float(config["GAN_LR"]["gan_lr"])
+
+	pretrained = eval(config["PRETRAINED"]["pretrained"])
+	pretrained_model = config["PRETRAINED_MODEL"]["pretrained_model"]
+
+	data_aug = eval(config["DATA_AUG"]["data_aug"])
+
+	n_res_blocks = eval(config["N_RES_BLOCKS"]["n_res_blocks"])
 
 	# Adding Comet Logging
 	api_key = os.environ['COMET_ML_ASTRO_API_KEY']
@@ -81,26 +91,30 @@ def main():
 	)
 
 	experiment.add_tag(comet_tag)
-
+	
 
 	# Create Dataloader
 	dataloader = torch.utils.data.DataLoader(
 	    SR_HST_HSC_Dataset(hst_path = hst_path , hsc_path = hsc_path, hr_size=[hst_dim, hst_dim], 
-	    	lr_size=[hsc_dim, hsc_dim], transform_type = "global_median_scale",data_aug = True), 
+	    	lr_size=[hsc_dim, hsc_dim], transform_type = "global_median_scale",data_aug = data_aug), 
 	    batch_size=batch_size, pin_memory=True, shuffle=True, collate_fn = collate_fn
 	)
 
-	# Define Generator
-	generator = Generator(n_res_blocks=16, n_ps_blocks=2,pix_shuffle=True)
+	# Define (or load) Generator
 
-	generator = train_srresnet(generator, dataloader, device, experiment,srresnet_model_name, lr=1e-4, total_steps=srresnet_steps, display_step=1)
+	if pretrained==True:
+		print(f"Loading Pretrained Model: {pretrained_model}")
+		generator = torch.load(pretrained_model)
+	else:
+		generator = Generator(n_res_blocks=n_res_blocks, n_ps_blocks=2,pix_shuffle=True)
+		generator = train_srresnet(generator, dataloader, device, experiment,srresnet_model_name, lr=srresnet_lr, total_steps=srresnet_steps, display_step=1)
 
 	torch.save(generator, f'srresnet_{srresnet_model_name}.pt')
 
 	generator = torch.load(f'srresnet_{srresnet_model_name}.pt')
 	discriminator = Discriminator(n_blocks=1, base_channels=8)
 
-	generator,discriminator = train_srgan(generator, discriminator, dataloader, device, experiment,gan_model_name, lr=1e-4, total_steps=gan_steps, display_step=1,lambda_gp=10)
+	generator,discriminator = train_srgan(generator, discriminator, dataloader, device, experiment,gan_model_name, lr=gan_lr, total_steps=gan_steps, display_step=1,lambda_gp=10)
 	
 	torch.save(generator, f'srgenerator_{gan_model_name}.pt')
 	torch.save(discriminator, f'srdiscriminator_{gan_model_name}.pt')

@@ -85,9 +85,9 @@ def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4,
 
             optimizer.zero_grad()
             loss.backward()
-            clip_grad_value_(srresnet.parameters(), 10000)
+            clip_grad_value_(srresnet.parameters(), 1)
             optimizer.step()
-            # scheduler.step()
+            scheduler.step()
 
 
             # Log to Comet ML
