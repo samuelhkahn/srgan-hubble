@@ -36,8 +36,8 @@ def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4,
     srresnet = srresnet.to(device).train()
     optimizer = torch.optim.Adam(srresnet.parameters(), lr=lr)
 
-    # every 5000th step decrease the learning rate
-    # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10000, gamma=0.1) 
+    # every n step decrease the learning rate
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5000, gamma=0.1) 
 
     cur_step = 0
     mean_loss = 0.0
