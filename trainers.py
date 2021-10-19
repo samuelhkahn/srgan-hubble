@@ -208,18 +208,19 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
             d_optimizer.zero_grad()
             d_loss.backward()
             d_optimizer.step()
-            mean_d_loss += d_loss.item() / display_step
+            mean_d_loss += d_loss.item() #/ display_step
 
             # hr_fake = generator(lr_real)
             # Adversarial loss
             
-            if display_step %5 ==0 and display_step!=0:
+            if display_step %1 ==0 and display_step!=0:
                 g_loss = -torch.mean(discriminator(hr_fake))
+                # vgg_loss = 
                 g_optimizer.zero_grad()
                 g_loss.backward()
                 g_optimizer.step()
-                mean_g_loss += g_loss.item() / display_step
-            # mean_vgg_loss += vgg_loss.item() / display_step
+                mean_g_loss += g_loss.item() #/ display_step
+            # mean_vgg_loss += vgg_loss.item() #/ display_step
 
 
             experiment.log_metric("Generator Loss",mean_g_loss)
