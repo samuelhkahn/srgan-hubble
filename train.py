@@ -82,6 +82,9 @@ def main():
 
 	n_res_blocks = eval(config["N_RES_BLOCKS"]["n_res_blocks"])
 
+	display_steps = eval(config["DISPLAY_STEPS"]["display_steps"])
+
+
 	# Adding Comet Logging
 	api_key = os.environ['COMET_ML_ASTRO_API_KEY']
 	experiment = Experiment(
@@ -107,14 +110,15 @@ def main():
 		generator = torch.load(pretrained_model)
 	else:
 		generator = Generator(n_res_blocks=n_res_blocks, n_ps_blocks=2,pix_shuffle=True)
-		generator = train_srresnet(generator, dataloader, device, experiment,srresnet_model_name, lr=srresnet_lr, total_steps=srresnet_steps, display_step=1)
+	
+	generator = train_srresnet(generator, dataloader, device, experiment,srresnet_model_name, lr=srresnet_lr, total_steps=srresnet_steps, display_step=display_steps)
 
 	torch.save(generator, f'srresnet_{srresnet_model_name}.pt')
 
 	generator = torch.load(f'srresnet_{srresnet_model_name}.pt')
 	discriminator = Discriminator(n_blocks=1, base_channels=8)
 
-	generator,discriminator = train_srgan(generator, discriminator, dataloader, device, experiment,gan_model_name, lr=gan_lr, total_steps=gan_steps, display_step=1,lambda_gp=10)
+	generator,discriminator = train_srgan(generator, discriminator, dataloader, device, experiment,gan_model_name, lr=gan_lr, total_steps=gan_steps, display_step=display_steps,lambda_gp=10)
 	
 	torch.save(generator, f'srgenerator_{gan_model_name}.pt')
 	torch.save(discriminator, f'srdiscriminator_{gan_model_name}.pt')
