@@ -2,6 +2,7 @@ from torchvision.models import vgg19
 import torch.nn as nn
 import torch.nn.functional as F
 import torch
+from torchvision import transforms
 
 # from neuralnet_pytorch.metrics import emd_loss
 # from neuralnet_pytorch.metrics import ssim
@@ -21,6 +22,10 @@ class Loss(nn.Module):
         self.vgg = nn.Sequential(*list(vgg.features)[:-1]).eval()
         for p in self.vgg.parameters():
             p.requires_grad = False
+
+        self.preprocess = transforms.Compose([
+                    transforms.Normalize(mean=[0.485, 0.456, 0.406], 
+                                        std=[0.229, 0.224, 0.225])])
 
     @staticmethod
     def img_loss(x_real, x_fake):
@@ -64,7 +69,10 @@ class Loss(nn.Module):
         x_real = torch.clip(x_real,0.0001)
 
         return emd_loss(x_real,x_fake,sinkhorn=True)
-
+    @staticmethod
+    def tensor_zero_one_transform(tensor):
+        tensor = (tensor+1)/2
+        return tensor
     def adv_loss(self, x, is_real):
         # If fake we want "convince" that it is real
         target = torch.zeros_like(x) if is_real else torch.ones_like(x)
@@ -78,10 +86,21 @@ class Loss(nn.Module):
         # loss = -torch.mean(real_preds_for_d) + torch.mean(fake_preds_for_d)
         return -torch.mean(real_preds_for_d) + torch.mean(fake_preds_for_d)       
 
-    def vgg_loss(self, x_real, x_fake):
+    def vgg_loss(self, x_real, x_fake,zero_one_transform = True,mean_std_transform = True):
+        if zero_one_transform == True:
+            x_real = self.tensor_zero_one_transform(x_real)
+            x_fake = self.tensor_zero_one_transform(x_fake)
+
+
         #Copy across channel diension because VGG expects 3 channels
         x_real = torch.repeat_interleave(x_real, 3, dim=1)
         x_fake = torch.repeat_interleave(x_fake, 3, dim=1)
+
+        if mean_std_transform== True:
+            x_real = self.preprocess(x_real)
+            x_fake = self.preprocess(x_fake)
+
+
         return F.mse_loss(self.vgg(x_real), self.vgg(x_fake))
 
 

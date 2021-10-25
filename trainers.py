@@ -200,6 +200,8 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
 
             real_disc_loss = torch.mean(discriminator(hst_hr))
             fake_disc_loss = torch.mean(discriminator(hr_fake))
+
+
             gradient_penalty = lambda_gp*gradient_penalty
             d_loss = fake_disc_loss + \
                      - real_disc_loss+ \
@@ -214,12 +216,17 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
             # Adversarial loss
             
             if display_step %1 ==0 and display_step!=0:
+
+                vgg_loss = loss_fn.vgg_loss(hst_hr,hr_fake,True,True)
+                masked_mse_loss = Loss.img_loss_with_mask(hst_hr, hr_fake,seg_map_real)
                 g_loss = -torch.mean(discriminator(hr_fake))
+
+                total_g_loss = g_loss +vgg_loss + masked_mse_loss
                 # vgg_loss = 
                 g_optimizer.zero_grad()
-                g_loss.backward()
+                total_g_loss.backward()
                 g_optimizer.step()
-                mean_g_loss += g_loss.item() #/ display_step
+                mean_g_loss += total_g_loss.item() #/ display_step
             # mean_vgg_loss += vgg_loss.item() #/ display_step
 
 
@@ -227,6 +234,12 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
             experiment.log_metric("Discriminator Loss",mean_d_loss)
             experiment.log_metric("Real Disc Loss Component",real_disc_loss)
             experiment.log_metric("Fake Disc Loss Component",fake_disc_loss)
+            experiment.log_metric("Generator Loss",mean_g_loss)
+            experiment.log_metric("VGG_Loss",vgg_loss)
+            experiment.log_metric("Masked MSE Loss",masked_mse_loss)
+            experiment.log_metric("VGG_Loss/Adv Loss",vgg_loss/g_loss)
+            experiment.log_metric("Masked MSE Loss/Adv Loss",masked_mse_loss/g_loss)
+            experiment.log_metric("Adveserial Loss",g_loss)
             experiment.log_metric("Gradient Penalty",gradient_penalty)
 
             # experiment.log_metric("VGG Loss",vgg_loss)
