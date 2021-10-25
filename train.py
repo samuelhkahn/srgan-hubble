@@ -78,6 +78,9 @@ def main():
 	pretrained = eval(config["PRETRAINED"]["pretrained"])
 	pretrained_model = config["PRETRAINED_MODEL"]["pretrained_model"]
 
+	pretrained_disc = eval(config["PRETRAINED_DISC"]["pretrained_disc"])
+	pretrained_disc_model = config["PRETRAINED_DISC_MODEL"]["pretrained_disc_model"]
+
 	data_aug = eval(config["DATA_AUG"]["data_aug"])
 
 	n_res_blocks = eval(config["N_RES_BLOCKS"]["n_res_blocks"])
@@ -115,8 +118,11 @@ def main():
 
 	# torch.save(generator, f'srresnet_{srresnet_model_name}.pt')
 
-	generator = torch.load(f'srresnet_{srresnet_model_name}.pt')
-	discriminator = Discriminator(n_blocks=1, base_channels=8)
+	if pretrained_disc==True:
+		print(f"Loading Pretrained Discriminator Model: {pretrained_disc_model}")
+		discriminator = torch.load(pretrained_disc_model)
+	else:
+		discriminator = Discriminator(n_blocks=1, base_channels=8)
 
 	generator,discriminator = train_srgan(generator, discriminator, dataloader, device, experiment,gan_model_name, lr=gan_lr, total_steps=gan_steps, display_step=display_steps,lambda_gp=10)
 	
