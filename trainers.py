@@ -183,6 +183,8 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
             lr_real = lr_real.unsqueeze(1).to(device)
             hst_lr = hst_lr.unsqueeze(1).to(device)
             hst_hr = hst_hr.unsqueeze(1).to(device)
+            seg_map_real = seg_map_real.to(device)
+
             # Enable autocast to FP16 tensors (new feature since torch==1.6.0)
             # If you're running older versions of torch, comment this out
             # and use NVIDIA apex for mixed/half precision training
