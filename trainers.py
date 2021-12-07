@@ -49,13 +49,10 @@ def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4,
     hsc_min, hsc_max = (-0.4692089855670929, 12.432257350922441)
 
     while cur_step < total_steps:
-        for hst_lr,hst_hr,lr_real, seg_map_real in tqdm(dataloader, position=0):
+        for hr_real,lr_real, seg_map_real in tqdm(dataloader, position=0):
             # Conv2d expects (n_samples, channels, height, width)
             # So add the channel dimension
-            hst_lr = hst_lr.to(device)
-            hst_hr = hst_hr.to(device)
-
-
+            hr_real = hr_real.to(device)
             lr_real = lr_real.unsqueeze(1).to(device)
             seg_map_real = seg_map_real.to(device)
 
@@ -72,16 +69,14 @@ def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4,
                     # hr_fake = batch, channels, height, width
 
                     hr_fake = srresnet(lr_real)
-                    mse_loss_hr = Loss.img_loss(hst_hr, hr_fake[:,0,:,:])
-                    mse_loss_mask_hr = Loss.img_loss_with_mask(hst_hr, hr_fake[:,0,:,:],seg_map_real)
+                    mse_loss = Loss.img_loss(hr_real, hr_fake[:,0,:,:])
+                    mse_loss_mask = Loss.img_loss_with_mask(hr_real, hr_fake[:,0,:,:],seg_map_real)
             else:
                 hr_fake = srresnet(lr_real)
+                mse_loss = Loss.img_loss(hr_real, hr_fake[:,0,:,:])
+                mse_loss_mask = Loss.img_loss_with_mask(hr_real, hr_fake[:,0,:,:],seg_map_real)
 
-                mse_loss_hr = Loss.img_loss(hst_hr, hr_fake[:,0,:,:])
-
-                mse_loss_mask_hr = Loss.img_loss_with_mask(hst_hr, hr_fake[:,0,:,:],seg_map_real)
-
-            loss = mse_loss_mask_hr + mse_loss_hr
+            loss = mse_loss_mask + mse_loss
 
             optimizer.zero_grad()
             loss.backward()
@@ -177,30 +172,19 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
     hsc_min, hsc_max = (-0.4692089855670929, 12.432257350922441)
 
     while cur_step < total_steps:
-        for hst_lr,hst_hr,lr_real, seg_map_real in tqdm(dataloader, position=0):
-
-
+        for hr_real,lr_real, seg_map_real in tqdm(dataloader, position=0):
+            hr_real = hr_real.to(device)
+            lr_real = lr_real.to(device)
+            
+            hr_real = hr_real.unsqueeze(1).to(device)
             lr_real = lr_real.unsqueeze(1).to(device)
-            hst_lr = hst_lr.unsqueeze(1).to(device)
-            hst_hr = hst_hr.unsqueeze(1).to(device)
-            seg_map_real = seg_map_real.to(device)
+            seg_map_real = seg_map_real.unsqueeze(1).to(device)
 
-            # Enable autocast to FP16 tensors (new feature since torch==1.6.0)
-            # If you're running older versions of torch, comment this out
-            # and use NVIDIA apex for mixed/half precision training
-            # if has_autocast:
-            #     with torch.cuda.amp.autocast(enabled=(device=='cuda')):
-            #         g_loss, d_loss,vgg_loss, hr_fake = loss_fn(
-            #             generator, discriminator, hr_real, lr_real, hr_segs
-            #         )
-            # else:
-            #     g_loss, d_loss,vgg_loss, hr_fake = loss_fn(
-            #         generator, discriminator, hr_real, lr_real, hr_segs
-            #     )
+
             hr_fake = generator(lr_real).detach()
-            gradient_penalty = compute_gradient_penalty(discriminator, hst_hr, hr_fake,device)
+            gradient_penalty = compute_gradient_penalty(discriminator, hr_real, hr_fake,device)
 
-            real_disc_loss = torch.mean(discriminator(hst_hr))
+            real_disc_loss = torch.mean(discriminator(hr_real))
             fake_disc_loss = torch.mean(discriminator(hr_fake))
 
 
@@ -219,11 +203,11 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
             
             if display_step %1 ==0 and display_step!=0:
 
-                vgg_loss = loss_fn.vgg_loss(hst_hr,hr_fake,True,True)
-                masked_mse_loss = Loss.img_loss_with_mask(hst_hr, hr_fake,seg_map_real)
+                vgg_loss = loss_fn.vgg_loss(hr_real,hr_fake,True,True)
+                masked_mse_loss = Loss.img_loss_with_mask(hr_real, hr_fake,seg_map_real)
                 g_loss = -torch.mean(discriminator(hr_fake))
 
-                total_g_loss = g_loss + 4*vgg_loss + masked_mse_loss
+                total_g_loss = g_loss + masked_mse_loss
                 # vgg_loss = 
                 g_optimizer.zero_grad()
                 total_g_loss.backward()
@@ -263,13 +247,13 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
 
                 lr_image = lr_real[0,:,:,:].squeeze(0).cpu()
                 sr_image_hr = hr_fake[0,0,:,:].double().cpu()
-                hst_hr_image = hst_hr[0,:,:].squeeze(0).cpu()  
+                hr_real_image = hr_real[0,:,:].squeeze(0).cpu()  
 
 
                 log_figure(sr_image_hr.detach().numpy(),"Super Resolution - HR",experiment)
                 log_figure(lr_image.detach().numpy(),"Low Resolution",experiment)
-                log_figure(hst_hr_image.detach().numpy(),"High Resolution - HR",experiment)
-                img_diff = (sr_image_hr - hst_hr_image).cpu()
+                log_figure(hr_real_image.detach().numpy(),"High Resolution - HR",experiment)
+                img_diff = (sr_image_hr - hr_real_image).cpu()
                 log_figure(img_diff.detach().numpy(),"Super Resolution Difference",experiment)
 
 

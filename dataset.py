@@ -140,6 +140,26 @@ class SR_HST_HSC_Dataset(Dataset):
         img_high = img_high / alpha
         return img_low,img_high
 
+    @staticmethod
+    def ds9_scaling(x, a=1000):
+        return np.log10(a*x + 1)/np.log10(a + 1)
+
+    @staticmethod
+    def ds9_unscaling(x, a=1000):
+        return ((a + 1)**x - 1) / a
+
+    @staticmethod
+    def clip(arr, use_data=True):
+        min_offset = max(arr.mean() - arr.std()*3, arr.min()) * use_data
+    
+        clipped_array = np.clip(
+            arr, 
+            min_offset, 
+            np.percentile(arr, 99.999)
+        ) 
+    
+        return clipped_array, min_offset
+
 
 
     def __len__(self) -> int:
@@ -193,29 +213,40 @@ class SR_HST_HSC_Dataset(Dataset):
         hst_seg_map = self.get_segmentation_map(hst_array)
         
 
-        # scale LR image with median scale factor
-        #hsc_array = self.scale_tensor(hsc_array,self.median_scale)
+        # Sigmoid Scaling
         if self.transform_type == "sigmoid":
             hst_transformation = self.sigmoid_transformation(hst_array)
             hsc_transformation = self.sigmoid_transformation(hsc_array)
-
+        # Log scaling
         elif self.transform_type == "log_scale":
             hst_transformation = self.log_transformation(hst_array,self.hst_min,1e-6)
             hsc_transformation = self.log_transformation(hsc_array,self.hst_min,1e-6)
-
+        # Median Scaling
         elif self.transform_type == "median_scale":
             hst_transformation = self.median_transformation(hst_array)
             hsc_transformation = self.median_transformation(hsc_array)
-            
+        # Sigmoid + RMS scale  
         elif self.transform_type == "sigmoid_rms":
             hst_transformation = self.sigmoid_rms_transformation(hst_array,self.hst_std)
             hsc_transformation = self.sigmoid_rms_transformation(hsc_array,self.hsc_std)
+
+        # Scaled based of median global value
         elif self.transform_type == "global_median_scale":
             hst_transformation = self.global_median_transformation(hst_array,self.hst_median,self.hst_std)
             hsc_transformation = self.global_median_transformation(hsc_array,self.hsc_median,self.hsc_std)
+        # min
         elif self.transform_type == "clip_min_max_norm":
             hst_transformation = self.min_max_normalization(hst_array,self.hst_min,self.hst_max)
             hsc_transformation = self.min_max_normalization(hsc_array,self.hsc_min,self.hsc_max)
+
+        elif self.transform_type == "ds9_scale":
+            hst_clipped = self.clip(hst_array,use_data=False)[0]
+            hst_transformation = self.ds9_scaling(hst_clipped)
+
+            hsc_clipped = self.clip(hsc_array,use_data=False)[0]
+            hsc_transformation = self.ds9_scaling(hsc_clipped)
+
+            
         # Add Segmap to second channel to ensure proper augmentations
         # hst_seg_stack = np.dstack((hst_transformation,hst_seg_map))
         # hst_seg_stack = self.to_tensor(hst_seg_stack)        
@@ -226,13 +257,9 @@ class SR_HST_HSC_Dataset(Dataset):
         hst_seg_map = self.to_tensor(hst_seg_map).squeeze(0)
         hsc_tensor = self.to_tensor(hsc_transformation).squeeze(0)
 
-        hst_lr,hst_hr = self.create_hr_lr_pair(hst_transformation,0.6)
-
-        hst_lr = self.to_tensor(hst_lr).squeeze(0)
-        hst_hr = self.to_tensor(hst_hr).squeeze(0)
         
         hst_tensor = self.to_tensor(hst_transformation).squeeze(0)
 
 
 
-        return  hst_lr,hst_hr,hsc_tensor,hst_seg_map
+        return  hst_tensor,hsc_tensor,hst_seg_map

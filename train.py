@@ -17,36 +17,23 @@ hsc_dim = int(config["HSC_DIM"]["hsc_dim"])
 
 
 def collate_fn(batch):
-	hst_lrs,hst_hrs,lrs, hr_segs = [], [], [], []
+	hrs, lrs, hr_segs = [], [], []
 
 
-	for hst_lr,hst_hr,lr, hr_seg in batch:
-		hst_lr_nan = torch.isnan(hst_lr).any()
-		hst_hr_nan = torch.isnan(hst_hr).any()
+	for hr, lr,hr_seg in batch:
+		hr_nan = torch.isnan(hr).any()
 		lr_nan = torch.isnan(lr).any()
-
-		hst_lr_inf = torch.isnan(hst_lr).any()
-		hst_hr_inf = torch.isnan(hst_hr).any()
+		hr_inf = torch.isinf(hr).any()
 		lr_inf = torch.isinf(lr).any()
-
-
-		good_vals = [hst_lr_nan,hst_hr_nan,hst_lr_inf,hst_hr_inf,lr_nan,lr_inf]
-
-		if hst_hr.shape == (hst_dim,hst_dim) \
-		and hst_lr.shape == (hst_dim,hst_dim) \
-		and lr.shape == (hsc_dim,hsc_dim) \
-		and True not in good_vals:
-			hst_lrs.append(hst_lr)
-			hst_hrs.append(hst_hr)
+		good_vals = [hr_nan,lr_nan,hr_inf,lr_inf]
+		if hr.shape == (600,600) and lr.shape == (100,100) and True not in good_vals:
+			hrs.append(hr)
 			lrs.append(lr)
 			hr_segs.append(hr_seg)
-
-	hst_lrs = torch.stack(hst_lrs, dim=0)
-	hst_hrs = torch.stack(hst_hrs, dim=0)
+	hrs = torch.stack(hrs, dim=0)
 	lrs = torch.stack(lrs, dim=0)
 	hr_segs = torch.stack(hr_segs, dim=0)
-
-	return hst_lrs,hst_hrs,lrs, hr_segs
+	return hrs, lrs, hr_segs
 
 
 def main():
@@ -102,7 +89,7 @@ def main():
 	# Create Dataloader
 	dataloader = torch.utils.data.DataLoader(
 	    SR_HST_HSC_Dataset(hst_path = hst_path , hsc_path = hsc_path, hr_size=[hst_dim, hst_dim], 
-	    	lr_size=[hsc_dim, hsc_dim], transform_type = "global_median_scale",data_aug = data_aug), 
+	    	lr_size=[hsc_dim, hsc_dim], transform_type = "ds9_scale",data_aug = data_aug), 
 	    batch_size=batch_size, pin_memory=True, shuffle=True, collate_fn = collate_fn
 	)
 
