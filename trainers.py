@@ -94,24 +94,24 @@ def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4,
                
                 lr_image = lr_real[0,:,:,:].squeeze(0).cpu()
 
-                sr_image_hr = hr_fake[0,0,:,:].double().cpu()
-                hst_hr_image = hst_hr[0,:,:].cpu()  
+                sr_image = hr_fake[0,0,:,:].double().cpu()
+                hst_image = hr_real[0,:,:].cpu()  
 
                 seg_image = seg_map_real[0,:,:].cpu()
 
 
-                log_figure(sr_image_hr.detach().numpy(),"Super Resolution - HR",experiment)
+                log_figure(sr_image.detach().numpy(),"Super Resolution",experiment)
                 log_figure(lr_image.detach().numpy(),"Low Resolution",experiment)
-                log_figure(hst_hr_image.detach().numpy(),"High Resolution - HR",experiment)
-                img_diff = (sr_image_hr - hst_hr_image).cpu()
+                log_figure(hst_image.detach().numpy(),"High Resolution ",experiment)
+                img_diff = (sr_image - hst_image).cpu()
                 log_figure(img_diff.detach().numpy(),"Super Resolution Difference",experiment,cmap="bwr_r")
 
-            mean_loss = mse_loss_hr.item() 
-            mean_mse_loss_mask_hr = mse_loss_mask_hr.item()
+            mean_loss = mse_loss.item() 
+            mean_mse_loss_mask = mse_loss_mask.item()
 
-            experiment.log_metric("SRResNet MSE MASKED HR Loss",mean_mse_loss_mask_hr)
+            experiment.log_metric("SRResNet MSE MASKED  Loss",mean_mse_loss_mask)
             experiment.log_metric("SRResNet Total MSE Loss",mean_loss)
-            experiment.log_metric("SRResNet mask/total",mean_mse_loss_mask_hr/mean_loss)
+            experiment.log_metric("SRResNet mask/total",mean_mse_loss_mask/mean_loss)
 
             experiment.log_metric("Learning Rate",optimizer.param_groups[0]['lr'])
 

@@ -101,9 +101,9 @@ def main():
 	else:
 		generator = Generator(n_res_blocks=n_res_blocks, n_ps_blocks=2,pix_shuffle=True)
 	
-	# generator = train_srresnet(generator, dataloader, device, experiment,srresnet_model_name, lr=srresnet_lr, total_steps=srresnet_steps, display_step=display_steps)
+	generator = train_srresnet(generator, dataloader, device, experiment,srresnet_model_name, lr=srresnet_lr, total_steps=srresnet_steps, display_step=display_steps)
 
-	# torch.save(generator, f'srresnet_{srresnet_model_name}.pt')
+	torch.save(generator, f'srresnet_{srresnet_model_name}.pt')
 
 	if pretrained_disc==True:
 		print(f"Loading Pretrained Discriminator Model: {pretrained_disc_model}")
