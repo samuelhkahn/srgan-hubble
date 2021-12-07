@@ -142,7 +142,7 @@ class SR_HST_HSC_Dataset(Dataset):
 
     @staticmethod
     def ds9_scaling(x, a=1000):
-        return (np.log10(a*x + 1)/np.log10(a + 1)) -1
+        return (np.log10(a*x + 1)/np.log10(a + 1)) 
 
     @staticmethod
     def ds9_unscaling(x, a=1000):
