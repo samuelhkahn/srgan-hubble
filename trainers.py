@@ -201,7 +201,7 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
             # hr_fake = generator(lr_real)
             # Adversarial loss
             
-            if display_step %1 ==0 and display_step!=0:
+            if cur_step % display_step == 0 and cur_step > 0:
 
                 vgg_loss = loss_fn.vgg_loss(hr_real,hr_fake,True,True)
                 masked_mse_loss = Loss.img_loss_with_mask(hr_real, hr_fake,seg_map_real)

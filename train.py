@@ -33,7 +33,7 @@ def collate_fn(batch):
 	hrs = torch.stack(hrs, dim=0)
 	lrs = torch.stack(lrs, dim=0)
 	hr_segs = torch.stack(hr_segs, dim=0)
-	return hrs, lrs, hr_segs
+	return hrs, lrs, hr_segsaaaa
 
 
 def main():
