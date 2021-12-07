@@ -216,18 +216,18 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
             # mean_vgg_loss += vgg_loss.item() #/ display_step
 
 
-            experiment.log_metric("Generator Loss",mean_g_loss)
-            experiment.log_metric("Discriminator Loss",mean_d_loss)
-            experiment.log_metric("Real Disc Loss Component",real_disc_loss)
-            experiment.log_metric("Fake Disc Loss Component",fake_disc_loss)
-            experiment.log_metric("Generator Loss",mean_g_loss)
-            experiment.log_metric("VGG_Loss",vgg_loss)
-            experiment.log_metric("Masked MSE Loss",masked_mse_loss)
-            experiment.log_metric("VGG_Loss/Adv Loss",vgg_loss/g_loss)
-            experiment.log_metric("Masked MSE Loss/Adv Loss",masked_mse_loss/g_loss)
-            experiment.log_metric("Adveserial Loss",g_loss)
-            experiment.log_metric("Gradient Penalty",gradient_penalty)
 
+                experiment.log_metric("Real Disc Loss Component",real_disc_loss)
+                experiment.log_metric("Fake Disc Loss Component",fake_disc_loss)
+                experiment.log_metric("Generator Loss",mean_g_loss)
+                experiment.log_metric("VGG_Loss",vgg_loss)
+                experiment.log_metric("Masked MSE Loss",masked_mse_loss)
+                experiment.log_metric("VGG_Loss/Adv Loss",vgg_loss/g_loss)
+                experiment.log_metric("Masked MSE Loss/Adv Loss",masked_mse_loss/g_loss)
+                experiment.log_metric("Adveserial Loss",g_loss)
+                experiment.log_metric("Gradient Penalty",gradient_penalty)
+                experiment.log_metric("Generator Loss",mean_g_loss)
+                experiment.log_metric("Discriminator Loss",mean_d_loss)
             # experiment.log_metric("VGG Loss",vgg_loss)
 
 
