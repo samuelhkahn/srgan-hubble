@@ -142,7 +142,7 @@ class SR_HST_HSC_Dataset(Dataset):
 
     @staticmethod
     def ds9_scaling(x, a=1000):
-        return np.log10(a*x + 1)/np.log10(a + 1)
+        return (np.log10(a*x + 1)/np.log10(a + 1)) -1
 
     @staticmethod
     def ds9_unscaling(x, a=1000):
@@ -246,7 +246,7 @@ class SR_HST_HSC_Dataset(Dataset):
             hsc_clipped = self.clip(hsc_array,use_data=False)[0]
             hsc_transformation = self.ds9_scaling(hsc_clipped)
 
-            
+
         # Add Segmap to second channel to ensure proper augmentations
         # hst_seg_stack = np.dstack((hst_transformation,hst_seg_map))
         # hst_seg_stack = self.to_tensor(hst_seg_stack)        

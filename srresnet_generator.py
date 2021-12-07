@@ -65,8 +65,8 @@ class Generator(nn.Module):
         # Output layer
         self.out_layer = nn.Sequential(
             nn.Conv2d(base_channels, 1, kernel_size=9, padding=4,padding_mode=padding_mode),
-            # nn.Tanh()
-	       nn.PReLU()
+            nn.Tanh()
+	       # nn.PReLU()
         )
 
     def forward(self, x):
