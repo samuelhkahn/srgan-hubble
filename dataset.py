@@ -141,12 +141,12 @@ class SR_HST_HSC_Dataset(Dataset):
         return img_low,img_high
 
     @staticmethod
-    def ds9_scaling(x, a=1000):
-        return (np.log10(a*x + 1)/np.log10(a + 1)) 
+    def ds9_scaling(x, a=1000,offset = 0):
+        return (np.log10(a*x + 1)/np.log10(a + 1)) - offset
 
     @staticmethod
-    def ds9_unscaling(x, a=1000):
-        return ((a + 1)**x - 1) / a
+    def ds9_unscaling(x, a=1000,offset = 0 ):
+        return (((a + 1)**x - 1) / a) + offset
 
     @staticmethod
     def clip(arr, use_data=True):
@@ -241,10 +241,10 @@ class SR_HST_HSC_Dataset(Dataset):
 
         elif self.transform_type == "ds9_scale":
             hst_clipped = self.clip(hst_array,use_data=False)[0]
-            hst_transformation = self.ds9_scaling(hst_clipped)
+            hst_transformation = self.ds9_scaling(hst_clipped,offset = 1)
 
             hsc_clipped = self.clip(hsc_array,use_data=False)[0]
-            hsc_transformation = self.ds9_scaling(hsc_clipped)
+            hsc_transformation = self.ds9_scaling(hsc_clipped,offset = 1)
 
 
         # Add Segmap to second channel to ensure proper augmentations
