@@ -201,21 +201,21 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
             # hr_fake = generator(lr_real)
             # Adversarial loss
             
-            if cur_step % display_step == 0 and cur_step > 0:
 
-                vgg_loss = loss_fn.vgg_loss(hr_real,hr_fake,True,True)
-                masked_mse_loss = Loss.img_loss_with_mask(hr_real, hr_fake,seg_map_real)
-                g_loss = -torch.mean(discriminator(hr_fake))
+            vgg_loss = loss_fn.vgg_loss(hr_real,hr_fake,True,True)
+            masked_mse_loss = Loss.img_loss_with_mask(hr_real, hr_fake,seg_map_real)
+            g_loss = -torch.mean(discriminator(hr_fake))
 
-                total_g_loss = g_loss + masked_mse_loss
-                # vgg_loss = 
-                g_optimizer.zero_grad()
-                total_g_loss.backward()
-                g_optimizer.step()
-                mean_g_loss += total_g_loss.item() #/ display_step
+            total_g_loss = g_loss + vgg_loss
+            # vgg_loss = 
+            g_optimizer.zero_grad()
+            total_g_loss.backward()
+            g_optimizer.step()
+            mean_g_loss += total_g_loss.item() #/ display_step
             # mean_vgg_loss += vgg_loss.item() #/ display_step
 
 
+            if cur_step % display_step == 0 and cur_step > 0:
 
                 experiment.log_metric("Real Disc Loss Component",real_disc_loss)
                 experiment.log_metric("Fake Disc Loss Component",fake_disc_loss)
