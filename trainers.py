@@ -206,7 +206,7 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
             masked_mse_loss = Loss.img_loss_with_mask(hr_real, hr_fake,seg_map_real)
             g_loss = -torch.mean(discriminator(hr_fake))
 
-            total_g_loss = g_loss + vgg_loss
+            total_g_loss = g_loss + vgg_loss + masked_mse_loss
             # vgg_loss = 
             g_optimizer.zero_grad()
             total_g_loss.backward()
