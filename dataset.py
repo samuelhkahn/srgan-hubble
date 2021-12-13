@@ -17,6 +17,7 @@ from astropy.visualization import simple_norm
 from mpl_toolkits.axes_grid1 import make_axes_locatable 
 from skimage.filters import gaussian
 from sklearn.preprocessing import minmax_scale
+from torchvision.transforms.functional import InterpolationMode as IMode
 
 class SR_HST_HSC_Dataset(Dataset):
     '''
@@ -63,6 +64,11 @@ class SR_HST_HSC_Dataset(Dataset):
 
         # HSC clip range - (0,99.9)
         self.hsc_min,self.hsc_max = (-0.4692089855670929, 12.432257434845326)
+
+        self.lr_transforms = transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.Resize(100, interpolation=IMode.BICUBIC)
+        ])
         
     def load_fits(self, file_path: str) -> np.ndarray:
         cutout = fits.open(file_path)
@@ -245,7 +251,11 @@ class SR_HST_HSC_Dataset(Dataset):
 
             hsc_clipped = self.clip(hsc_array,use_data=False)[0]
             hsc_transformation = self.ds9_scaling(hsc_clipped,offset = 1)
+        elif self.transform_type == "hst_downscale":
+            hst_clipped = self.clip(hst_array,use_data=False)[0]
+            hst_transformation = self.ds9_scaling(hst_clipped,offset = 1)
 
+            hsc_transformation =self.lr_transforms(hst_transformation)
 
         # Add Segmap to second channel to ensure proper augmentations
         # hst_seg_stack = np.dstack((hst_transformation,hst_seg_map))

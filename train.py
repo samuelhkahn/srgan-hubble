@@ -89,7 +89,7 @@ def main():
 	# Create Dataloader
 	dataloader = torch.utils.data.DataLoader(
 	    SR_HST_HSC_Dataset(hst_path = hst_path , hsc_path = hsc_path, hr_size=[hst_dim, hst_dim], 
-	    	lr_size=[hsc_dim, hsc_dim], transform_type = "ds9_scale",data_aug = data_aug), 
+	    	lr_size=[hsc_dim, hsc_dim], transform_type = "hst_downscale",data_aug = data_aug), 
 	    batch_size=batch_size, pin_memory=True, shuffle=True, collate_fn = collate_fn
 	)
 
