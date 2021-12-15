@@ -51,7 +51,7 @@ class Generator(nn.Module):
                 ]
             self.ps_blocks = nn.Sequential(*ps_blocks)
         else:
-            self.ps_blocks = nn.Sequential(nn.Upsample(scale_factor = 6, mode='bilinear'),
+            self.ps_blocks = nn.Sequential(nn.Upsample(scale_factor = 6, mode='nearest'),
             nn.ReflectionPad2d(1),
             nn.Conv2d(base_channels,base_channels,kernel_size=3, stride=1, padding=0))
 	
@@ -73,6 +73,6 @@ class Generator(nn.Module):
         x_res = self.in_layer(x)
         x = x_res + self.res_blocks(x_res)
         x = self.ps_blocks(x)
-        #x = self.inter_layer(x)
+        x = self.inter_layer(x)
         x = self.out_layer(x)
         return x
