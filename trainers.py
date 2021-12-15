@@ -76,8 +76,8 @@ def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4,
                 mse_loss = Loss.img_loss(hr_real, hr_fake[:,0,:,:])
                 mse_loss_mask = Loss.img_loss_with_mask(hr_real, hr_fake[:,0,:,:],seg_map_real)
 
-            # loss = mse_loss_mask + mse_loss
-            loss = mse_loss
+            loss = mse_loss_mask + mse_loss
+            # loss = mse_loss
             optimizer.zero_grad()
             loss.backward()
             clip_grad_value_(srresnet.parameters(), 1)
