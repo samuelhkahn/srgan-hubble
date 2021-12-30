@@ -104,7 +104,7 @@ def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4,
 
                 log_figure(sr_image.detach().numpy(),"Paired Generated LR Image",experiment)
                 log_figure(lr_image.detach().numpy(),"Low Resolution",experiment)
-                log_figure(hst_image.detach().numpy(),"High Resolution ",experiment)
+                log_figure(hr_down_image.detach().numpy(),"LR HST ",experiment)
                 log_figure(img_diff.detach().numpy(),"Paired Image Difference",experiment,cmap="bwr_r")
 
             mean_loss = mse_loss.item() 
@@ -258,7 +258,7 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
 
                 log_figure(sr_image.detach().numpy(),"Paired Generated LR Image",experiment)
                 log_figure(lr_image.detach().numpy(),"Low Resolution",experiment)
-                log_figure(hst_image.detach().numpy(),"High Resolution ",experiment)
+                log_figure(hr_down_image.detach().numpy(),"LR HST ",experiment)
                 log_figure(img_diff.detach().numpy(),"Paired Image Difference",experiment,cmap="bwr_r")
 
 
