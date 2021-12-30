@@ -254,8 +254,15 @@ class SR_HST_HSC_Dataset(Dataset):
         elif self.transform_type == "hst_downscale":
             hst_clipped = self.clip(hst_array,use_data=False)[0]
             hst_transformation = self.ds9_scaling(hst_clipped,offset = 1)
-
             hsc_transformation =self.lr_transforms(hst_transformation)
+        elif self.transform_type == "paired_image_translation":
+            hst_clipped = self.clip(hst_array,use_data=False)[0]
+            hst_transformation = self.ds9_scaling(hst_clipped,offset = 1)
+            hst_lr_transformation =self.lr_transforms(hst_transformation)
+            hsc_clipped = self.clip(hsc_array,use_data=False)[0]
+            hsc_transformation = self.ds9_scaling(hsc_clipped,offset = 1)
+
+
 
         # Add Segmap to second channel to ensure proper augmentations
         # hst_seg_stack = np.dstack((hst_transformation,hst_seg_map))
@@ -266,10 +273,7 @@ class SR_HST_HSC_Dataset(Dataset):
         
         hst_seg_map = self.to_tensor(hst_seg_map).squeeze(0)
         hsc_tensor = self.to_tensor(hsc_transformation).squeeze(0)
-
-        
         hst_tensor = self.to_tensor(hst_transformation).squeeze(0)
+        hst_lr_tensor = self.to_tensor(hst_lr_transformation).squeeze(0)
 
-
-
-        return  hst_tensor,hsc_tensor,hst_seg_map
+        return  hst_tensor,hst_lr_tensor,hsc_tensor,hst_seg_map
