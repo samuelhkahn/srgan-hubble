@@ -49,12 +49,13 @@ def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4,
     hsc_min, hsc_max = (-0.4692089855670929, 12.432257350922441)
 
     while cur_step < total_steps:
-        for hr_real,lr_real, seg_map_real in tqdm(dataloader, position=0):
+        for hr_real,hr_down,lr_real, seg_map_real in tqdm(dataloader, position=0):
             # Conv2d expects (n_samples, channels, height, width)
             # So add the channel dimension
             hr_real = hr_real.to(device)
+            hr_down = hr_down.unsqueeze(1).to(device)
             lr_real = lr_real.unsqueeze(1).to(device)
-            seg_map_real = seg_map_real.to(device)
+            seg_map_real = seg_map_real.unsqueeze(1).to(device)
 
 
             # print("HST LR:",hst_lr.shape)
@@ -69,12 +70,12 @@ def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4,
                     # hr_fake = batch, channels, height, width
 
                     hr_fake = srresnet(lr_real)
-                    mse_loss = Loss.img_loss(hr_real, hr_fake[:,0,:,:])
-                    mse_loss_mask = Loss.img_loss_with_mask(hr_real, hr_fake[:,0,:,:],seg_map_real)
+                    mse_loss = Loss.img_loss(hr_down, hr_fake[:,0,:,:])
+                    mse_loss_mask = Loss.img_loss_with_mask(hr_down, hr_fake[:,0,:,:],seg_map_real)
             else:
                 hr_fake = srresnet(lr_real)
-                mse_loss = Loss.img_loss(hr_real, hr_fake[:,0,:,:])
-                mse_loss_mask = Loss.img_loss_with_mask(hr_real, hr_fake[:,0,:,:],seg_map_real)
+                mse_loss = Loss.img_loss(hr_down, hr_fake[:,0,:,:])
+                mse_loss_mask = Loss.img_loss_with_mask(hr_down, hr_fake[:,0,:,:],seg_map_real)
 
             loss = mse_loss_mask + mse_loss
             # loss = mse_loss
@@ -93,18 +94,18 @@ def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4,
                 print('Step {}: SRResNet loss: {:.5f}'.format(cur_step, mean_loss))
                
                 lr_image = lr_real[0,:,:,:].squeeze(0).cpu()
-
+                hr_down_image = hr_down[0,:,:,:].squeeze(0).cpu()
                 sr_image = hr_fake[0,0,:,:].double().cpu()
                 hst_image = hr_real[0,:,:].cpu()  
 
                 seg_image = seg_map_real[0,:,:].cpu()
 
+                img_diff = (sr_image - hr_down_image).cpu()
 
-                log_figure(sr_image.detach().numpy(),"Super Resolution",experiment)
+                log_figure(sr_image.detach().numpy(),"Paired Generated LR Image",experiment)
                 log_figure(lr_image.detach().numpy(),"Low Resolution",experiment)
                 log_figure(hst_image.detach().numpy(),"High Resolution ",experiment)
-                img_diff = (sr_image - hst_image).cpu()
-                log_figure(img_diff.detach().numpy(),"Super Resolution Difference",experiment,cmap="bwr_r")
+                log_figure(img_diff.detach().numpy(),"Paired Image Difference",experiment,cmap="bwr_r")
 
             mean_loss = mse_loss.item() 
             mean_mse_loss_mask = mse_loss_mask.item()
@@ -172,19 +173,20 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
     hsc_min, hsc_max = (-0.4692089855670929, 12.432257350922441)
 
     while cur_step < total_steps:
-        for hr_real,lr_real, seg_map_real in tqdm(dataloader, position=0):
+        for hr_real,hr_down,lr_real, seg_map_real in tqdm(dataloader, position=0):
             hr_real = hr_real.to(device)
             lr_real = lr_real.to(device)
             
             hr_real = hr_real.unsqueeze(1).to(device)
             lr_real = lr_real.unsqueeze(1).to(device)
+            hr_down = hr_down.unsqueeze(1).to(device)
             seg_map_real = seg_map_real.unsqueeze(1).to(device)
 
 
             hr_fake = generator(lr_real).detach()
-            gradient_penalty = compute_gradient_penalty(discriminator, hr_real, hr_fake,device)
+            gradient_penalty = compute_gradient_penalty(discriminator, hr_down, hr_fake,device)
 
-            real_disc_loss = torch.mean(discriminator(hr_real))
+            real_disc_loss = torch.mean(discriminator(hr_down))
             fake_disc_loss = torch.mean(discriminator(hr_fake))
 
 
@@ -202,8 +204,8 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
             # Adversarial loss
             
 
-            vgg_loss = loss_fn.vgg_loss(hr_real,hr_fake,True,True)
-            masked_mse_loss = Loss.img_loss_with_mask(hr_real, hr_fake,seg_map_real)
+            vgg_loss = loss_fn.vgg_loss(hr_down,hr_fake,True,True)
+            masked_mse_loss = Loss.img_loss_with_mask(hr_down, hr_fake,seg_map_real)
             g_loss = -torch.mean(discriminator(hr_fake))
 
             total_g_loss = g_loss + vgg_loss + masked_mse_loss
@@ -246,15 +248,19 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
 
 
                 lr_image = lr_real[0,:,:,:].squeeze(0).cpu()
-                sr_image_hr = hr_fake[0,0,:,:].double().cpu()
-                hr_real_image = hr_real[0,:,:].squeeze(0).cpu()  
+                hr_down_image = hr_down[0,:,:,:].squeeze(0).cpu()
+                sr_image = hr_fake[0,0,:,:].double().cpu()
+                hst_image = hr_real[0,:,:].squeeze(0).cpu()  
 
+                seg_image = seg_map_real[0,:,:].cpu()
 
-                log_figure(sr_image_hr.detach().numpy(),"Super Resolution - HR",experiment)
+                img_diff = (sr_image - hr_down_image).cpu()
+
+                log_figure(sr_image.detach().numpy(),"Paired Generated LR Image",experiment)
                 log_figure(lr_image.detach().numpy(),"Low Resolution",experiment)
-                log_figure(hr_real_image.detach().numpy(),"High Resolution - HR",experiment)
-                img_diff = (sr_image_hr - hr_real_image).cpu()
-                log_figure(img_diff.detach().numpy(),"Super Resolution Difference",experiment)
+                log_figure(hst_image.detach().numpy(),"High Resolution ",experiment)
+                log_figure(img_diff.detach().numpy(),"Paired Image Difference",experiment,cmap="bwr_r")
+
 
 
             mean_g_loss = 0.0

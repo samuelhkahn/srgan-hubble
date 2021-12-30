@@ -72,7 +72,7 @@ class Generator(nn.Module):
     def forward(self, x):
         x_res = self.in_layer(x)
         x = x_res + self.res_blocks(x_res)
-        x = self.ps_blocks(x)
-        x = self.inter_layer(x)
+        # x = self.ps_blocks(x)
+        # x = self.inter_layer(x)
         x = self.out_layer(x)
         return x

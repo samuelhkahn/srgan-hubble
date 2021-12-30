@@ -17,23 +17,29 @@ hsc_dim = int(config["HSC_DIM"]["hsc_dim"])
 
 
 def collate_fn(batch):
-	hrs, lrs, hr_segs = [], [], []
+	hrs, hr_downs, lrs, hr_segs = [], [], [], []
 
-
-	for hr, lr,hr_seg in batch:
+	for hr,hr_down, lr,hr_seg in batch:
 		hr_nan = torch.isnan(hr).any()
+		hr_down_nan = torch.isnan(hr_down).any()
 		lr_nan = torch.isnan(lr).any()
+
 		hr_inf = torch.isinf(hr).any()
+		hr_down_inf = torch.isnan(hr_down).any()
 		lr_inf = torch.isinf(lr).any()
-		good_vals = [hr_nan,lr_nan,hr_inf,lr_inf]
-		if hr.shape == (600,600) and lr.shape == (100,100) and True not in good_vals:
+
+		good_vals = [hr_nan,hr_down_nan,lr_nan,hr_inf,hr_down_inf,lr_inf]
+		if hr.shape == (600,600) and hr_down.shape == (100,100) and lr.shape == (100,100) and True not in good_vals:
 			hrs.append(hr)
+			hr_downs.append(hr_down)
 			lrs.append(lr)
 			hr_segs.append(hr_seg)
+
 	hrs = torch.stack(hrs, dim=0)
+	hr_downs = torch.stack(hr_downs, dim=0)
 	lrs = torch.stack(lrs, dim=0)
 	hr_segs = torch.stack(hr_segs, dim=0)
-	return hrs, lrs, hr_segs
+	return hrs, hr_downs, lrs, hr_segs
 
 
 def main():
@@ -89,7 +95,7 @@ def main():
 	# Create Dataloader
 	dataloader = torch.utils.data.DataLoader(
 	    SR_HST_HSC_Dataset(hst_path = hst_path , hsc_path = hsc_path, hr_size=[hst_dim, hst_dim], 
-	    	lr_size=[hsc_dim, hsc_dim], transform_type = "hst_downscale",data_aug = data_aug), 
+	    	lr_size=[hsc_dim, hsc_dim], transform_type = "paired_image_translation",data_aug = data_aug), 
 	    batch_size=batch_size, pin_memory=True, shuffle=True, collate_fn = collate_fn
 	)
 

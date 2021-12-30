@@ -259,6 +259,7 @@ class SR_HST_HSC_Dataset(Dataset):
             hst_clipped = self.clip(hst_array,use_data=False)[0]
             hst_transformation = self.ds9_scaling(hst_clipped,offset = 1)
             hst_lr_transformation =self.lr_transforms(hst_transformation)
+            hst_down_seg_map = self.lr_transforms(hst_seg_map)
             hsc_clipped = self.clip(hsc_array,use_data=False)[0]
             hsc_transformation = self.ds9_scaling(hsc_clipped,offset = 1)
 
@@ -271,9 +272,9 @@ class SR_HST_HSC_Dataset(Dataset):
 
         # Collapse First Dimension and extract hst/seg_map
         
-        hst_seg_map = self.to_tensor(hst_seg_map).squeeze(0)
+        hst_down_seg_map = self.to_tensor(hst_down_seg_map).squeeze(0)
         hsc_tensor = self.to_tensor(hsc_transformation).squeeze(0)
         hst_tensor = self.to_tensor(hst_transformation).squeeze(0)
         hst_lr_tensor = self.to_tensor(hst_lr_transformation).squeeze(0)
 
-        return  hst_tensor,hst_lr_tensor,hsc_tensor,hst_seg_map
+        return  hst_tensor,hst_lr_tensor,hsc_tensor,hst_down_seg_map
