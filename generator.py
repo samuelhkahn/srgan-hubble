@@ -70,9 +70,9 @@ class Pix2PixGenerator(nn.Module):
         x = self.up_conv(x)
 
         # Add input image (HSC) as "skip connection"
-        x = torch.cat((x, x_in), axis=1)
+       # x = torch.cat((x, x_in), axis=1)
 
         # final conv to go from 2->1 channels
-        x = self.final_conv(x)
+        #x = self.final_conv(x)
 
         return self.tanh(x)
