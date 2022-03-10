@@ -63,7 +63,7 @@ def train_srresnet(srresnet, dataloader, device, experiment,model_name,pix2pix_m
             hr_real = hr_real.to(device)
 
             # ADD padding to feed it in
-            lr_real = pad_array(lr_real)
+            lr_real = pad_array(lr_real).to(device)
 
             #Generate low resolution image pair via trained pix2pix model
             lr_gen = pix2pix_generator(lr_real.unsqueeze(1))
@@ -203,7 +203,7 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
 
             seg_map_real = seg_map_real.unsqueeze(1).to(device)
             # ADD padding to feed it in
-            lr_real = pad_array(lr_real)
+            lr_real = pad_array(lr_real).to(device)
 
             #Generate low resolution image pair via trained pix2pix model
             lr_gen = pix2pix_generator(lr_real)
