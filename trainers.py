@@ -1,5 +1,6 @@
 from tqdm import tqdm
 from torchvision.utils import make_grid
+import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
 from srresnet_loss import Loss
 import torch
@@ -8,6 +9,10 @@ from torch.autograd import Variable
 from torch import autograd
 import numpy as np
 from log_figure import log_figure
+from generator import Pix2PixGenerator
+from squarepad import SquarePad
+from torchvision.transforms import CenterCrop
+
 # Parse torch version for autocast
 # ######################################################
 version = torch.__version__
@@ -32,12 +37,15 @@ def invert_min_max_normalization(tensor:np.ndarray, min_val:float, max_val:float
     unnormalized=tensor*denominator+min_val
     return unnormalized
 
-def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4, total_steps=1e6, display_step=500 ):
+def train_srresnet(srresnet, dataloader, device, experiment,model_name,pix2pix_model, lr=1e-4, total_steps=1e6, display_step=500 ):
     srresnet = srresnet.to(device).train()
     optimizer = torch.optim.Adam(srresnet.parameters(), lr=lr)
-
+    pix2pix_generator = torch.load(pix2pix_model).to(device)
     # every n step decrease the learning rate
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5000, gamma=0.1) 
+    
+    square_pad = SquarePad(14,"reflect")
+    pad_array=transforms.Compose([square_pad])
 
     cur_step = 0
     mean_loss = 0.0
@@ -53,9 +61,18 @@ def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4,
             # Conv2d expects (n_samples, channels, height, width)
             # So add the channel dimension
             hr_real = hr_real.to(device)
-            lr_real = lr_real.unsqueeze(1).to(device)
-            seg_map_real = seg_map_real.to(device)
 
+            # ADD padding to feed it in
+            lr_real = pad_array(lr_real)
+
+            #Generate low resolution image pair via trained pix2pix model
+            lr_gen = pix2pix_generator(lr_real.unsqueeze(1))
+
+            # CenterCrop Imagee 
+            lr_gen = CenterCrop(100)(lr_gen)
+
+            lr_gen = lr_gen.to(device)
+            seg_map_real = seg_map_real.to(device)
 
             # print("HST LR:",hst_lr.shape)
             # print("HST HR:",hst_hr.shape)
@@ -68,11 +85,11 @@ def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4,
                 with torch.cuda.amp.autocast(enabled=(device=='cuda')):
                     # hr_fake = batch, channels, height, width
 
-                    hr_fake = srresnet(lr_real)
+                    hr_fake = srresnet(lr_gen)
                     mse_loss = Loss.img_loss(hr_real, hr_fake[:,0,:,:])
                     mse_loss_mask = Loss.img_loss_with_mask(hr_real, hr_fake[:,0,:,:],seg_map_real)
             else:
-                hr_fake = srresnet(lr_real)
+                hr_fake = srresnet(lr_gen)
                 mse_loss = Loss.img_loss(hr_real, hr_fake[:,0,:,:])
                 mse_loss_mask = Loss.img_loss_with_mask(hr_real, hr_fake[:,0,:,:],seg_map_real)
 
@@ -86,25 +103,25 @@ def train_srresnet(srresnet, dataloader, device, experiment,model_name, lr=1e-4,
 
 
             # Log to Comet ML
-
-
-
             if cur_step % display_step == 0 and cur_step > 0:
                 print('Step {}: SRResNet loss: {:.5f}'.format(cur_step, mean_loss))
                
-                lr_image = lr_real[0,:,:,:].squeeze(0).cpu()
+                lr_image = lr_real[0,:,:].squeeze(0).cpu()
+                lr_gen = lr_gen[0,:,:,:].squeeze(0).cpu()
 
                 sr_image = hr_fake[0,0,:,:].double().cpu()
                 hst_image = hr_real[0,:,:].cpu()  
 
                 seg_image = seg_map_real[0,:,:].cpu()
 
-
                 log_figure(sr_image.detach().numpy(),"Super Resolution",experiment)
                 log_figure(lr_image.detach().numpy(),"Low Resolution",experiment)
+                log_figure(lr_gen.detach().numpy(),"Generated Low Resolution",experiment)
                 log_figure(hst_image.detach().numpy(),"High Resolution ",experiment)
-                img_diff = (sr_image - hst_image).cpu()
-                log_figure(img_diff.detach().numpy(),"Super Resolution Difference",experiment,cmap="bwr_r")
+
+                img_diff = (sr_image - hst_image).cpu().detach().numpy()
+                vmax = np.abs(img_diff).max()
+                log_figure(img_diff,"Paired Image Difference",experiment,cmap="bwr_r",set_lims=True,lims=[-vmax,vmax])
 
             mean_loss = mse_loss.item() 
             mean_mse_loss_mask = mse_loss_mask.item()
@@ -147,7 +164,7 @@ def compute_gradient_penalty(discriminator, real_samples, fake_samples,device):
     gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean().to(device)
     return gradient_penalty
 
-def train_srgan(generator, discriminator, dataloader, device,experiment, model_name,lr=1e-4, total_steps=2e5, display_step=100,lambda_gp=1):
+def train_srgan(generator, discriminator, dataloader, device,experiment, model_name,pix2pix_model,lr=1e-4, total_steps=2e5, display_step=100,lambda_gp=1):
     generator = generator.to(device).train()
     discriminator = discriminator.to(device).train()
     loss_fn = Loss(device=device)
@@ -157,6 +174,11 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
 
     g_scheduler = torch.optim.lr_scheduler.LambdaLR(g_optimizer, lambda _: 0.1)
     d_scheduler = torch.optim.lr_scheduler.LambdaLR(d_optimizer, lambda _: 0.1)
+
+    pix2pix_generator = torch.load(pix2pix_model).to(device)
+    
+    square_pad = SquarePad(14,"reflect")
+    pad_array=transforms.Compose([square_pad])
 
     lr_step = total_steps // 2
     cur_step = 0
@@ -178,10 +200,20 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
             
             hr_real = hr_real.unsqueeze(1).to(device)
             lr_real = lr_real.unsqueeze(1).to(device)
+
             seg_map_real = seg_map_real.unsqueeze(1).to(device)
+            # ADD padding to feed it in
+            lr_real = pad_array(lr_real)
 
+            #Generate low resolution image pair via trained pix2pix model
+            lr_gen = pix2pix_generator(lr_real)
 
-            hr_fake = generator(lr_real).detach()
+            # CenterCrop Imagee 
+            lr_gen = CenterCrop(100)(lr_gen)
+
+            lr_gen = lr_gen.to(device)
+
+            hr_fake = generator(lr_gen).detach()
             gradient_penalty = compute_gradient_penalty(discriminator, hr_real, hr_fake,device)
 
             real_disc_loss = torch.mean(discriminator(hr_real))
@@ -244,17 +276,20 @@ def train_srgan(generator, discriminator, dataloader, device,experiment, model_n
             if cur_step % display_step == 0 and cur_step > 0:
                 print('Step {}: Generator loss: {:.5f}, Discriminator loss: {:.5f}'.format(cur_step, mean_g_loss, mean_d_loss))
 
-
                 lr_image = lr_real[0,:,:,:].squeeze(0).cpu()
-                sr_image_hr = hr_fake[0,0,:,:].double().cpu()
-                hr_real_image = hr_real[0,:,:].squeeze(0).cpu()  
+                lr_gen = lr_gen[0,:,:,:].squeeze(0).cpu()
+                sr_image = hr_fake[0,0,:,:].double().cpu()
+                hst_image = hr_real[0,:,:].squeeze(0).cpu()  
 
 
-                log_figure(sr_image_hr.detach().numpy(),"Super Resolution - HR",experiment)
+                log_figure(sr_image.detach().numpy(),"Super Resolution",experiment)
+                log_figure(lr_gen.detach().numpy(),"Generated Low Resolution",experiment)
                 log_figure(lr_image.detach().numpy(),"Low Resolution",experiment)
-                log_figure(hr_real_image.detach().numpy(),"High Resolution - HR",experiment)
-                img_diff = (sr_image_hr - hr_real_image).cpu()
-                log_figure(img_diff.detach().numpy(),"Super Resolution Difference",experiment)
+                log_figure(hst_image.detach().numpy(),"High Resolution",experiment)
+
+                img_diff = (sr_image - hst_image).cpu().detach().numpy()
+                vmax = np.abs(img_diff).max()
+                log_figure(img_diff,"Paired Image Difference",experiment,cmap="bwr_r",set_lims=True,lims=[-vmax,vmax])
 
 
             mean_g_loss = 0.0

@@ -67,6 +67,7 @@ def main():
 
 	pretrained_disc = eval(config["PRETRAINED_DISC"]["pretrained_disc"])
 	pretrained_disc_model = config["PRETRAINED_DISC_MODEL"]["pretrained_disc_model"]
+	pix2pix_model = config["PIX2PIX_MODEL"]["pix2pix_model"]
 
 	data_aug = eval(config["DATA_AUG"]["data_aug"])
 
@@ -101,9 +102,17 @@ def main():
 	else:
 		generator = Generator(n_res_blocks=n_res_blocks, n_ps_blocks=2,pix_shuffle=True)
 	
-	generator = train_srresnet(generator, dataloader, device, experiment,srresnet_model_name, lr=srresnet_lr, total_steps=srresnet_steps, display_step=display_steps)
+	generator = train_srresnet(generator, 
+							 dataloader, 
+							 device, 
+							 experiment,
+							 srresnet_model_name,
+							 pix2pix_model,
+							 lr=srresnet_lr, 
+							 total_steps=srresnet_steps, 
+							 display_step=display_steps)
 
-	torch.save(generator, f'srresnet_{srresnet_model_name}.pt')
+	# torch.save(generator, f'srresnet_{srresnet_model_name}.pt')
 
 	if pretrained_disc==True:
 		print(f"Loading Pretrained Discriminator Model: {pretrained_disc_model}")
@@ -111,7 +120,17 @@ def main():
 	else:
 		discriminator = Discriminator(n_blocks=1, base_channels=8)
 
-	generator,discriminator = train_srgan(generator, discriminator, dataloader, device, experiment,gan_model_name, lr=gan_lr, total_steps=gan_steps, display_step=display_steps,lambda_gp=10)
+	generator,discriminator = train_srgan(generator, 
+										discriminator, 
+										dataloader, 
+										device, 
+										experiment,
+										gan_model_name,
+										pix2pix_model,
+										lr=gan_lr, 
+										total_steps=gan_steps, 
+										display_step=display_steps,
+										lambda_gp=10)
 	
 	torch.save(generator, f'srgenerator_{gan_model_name}.pt')
 	torch.save(discriminator, f'srdiscriminator_{gan_model_name}.pt')
